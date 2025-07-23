@@ -327,3 +327,167 @@ impl DockaError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io;
+
+    #[test]
+    fn test_error_creation_helpers() {
+        // Test convenient constructor methods
+        // 便利なコンストラクタメソッドのテスト
+
+        let invalid_input = DockaError::invalid_input("test message");
+        assert!(matches!(invalid_input, DockaError::InvalidInput { .. }));
+
+        let permission_denied = DockaError::permission_denied("docker access");
+        assert!(matches!(
+            permission_denied,
+            DockaError::PermissionDenied { .. }
+        ));
+
+        let cache_error = DockaError::cache_error("cache failed");
+        assert!(matches!(cache_error, DockaError::Cache { .. }));
+    }
+
+    #[test]
+    fn test_error_display() {
+        // Test error message formatting
+        // エラーメッセージフォーマットのテスト
+
+        let container_not_found = DockaError::ContainerNotFound {
+            name: "test-container".to_string(),
+        };
+        let message = format!("{}", container_not_found);
+        assert!(message.contains("test-container"));
+        assert!(message.contains("not found"));
+    }
+
+    #[test]
+    fn test_error_from_conversions() {
+        // Test automatic error conversions
+        // 自動エラー変換のテスト
+
+        let io_error = io::Error::new(io::ErrorKind::PermissionDenied, "access denied");
+        let docka_error: DockaError = io_error.into();
+        assert!(matches!(docka_error, DockaError::Io(_)));
+
+        let json_error = serde_json::from_str::<serde_json::Value>("invalid json");
+        assert!(json_error.is_err());
+        let docka_error: DockaError = json_error.unwrap_err().into();
+        assert!(matches!(docka_error, DockaError::Serialization(_)));
+    }
+
+    #[test]
+    fn test_error_recoverability() {
+        // Test error recovery classification
+        // エラー回復分類のテスト
+
+        let recoverable_errors = vec![
+            DockaError::ContainerNotFound {
+                name: "test".to_string(),
+            },
+            DockaError::InvalidInput {
+                message: "test".to_string(),
+            },
+            DockaError::Cache {
+                message: "test".to_string(),
+            },
+        ];
+
+        for error in recoverable_errors {
+            assert!(
+                error.is_recoverable(),
+                "Error should be recoverable: {:?}",
+                error
+            );
+        }
+
+        let non_recoverable_errors = vec![
+            DockaError::DockerDaemonNotRunning,
+            DockaError::Internal {
+                message: "test".to_string(),
+            },
+            DockaError::NotImplemented {
+                feature: "test".to_string(),
+            },
+        ];
+
+        for error in non_recoverable_errors {
+            assert!(
+                !error.is_recoverable(),
+                "Error should not be recoverable: {:?}",
+                error
+            );
+        }
+    }
+
+    #[test]
+    fn test_user_friendly_messages() {
+        // Test user-friendly error messages
+        // ユーザーフレンドリーなエラーメッセージのテスト
+
+        let daemon_error = DockaError::DockerDaemonNotRunning;
+        let user_msg = daemon_error.user_message();
+        assert!(user_msg.contains("Docker is not running"));
+        assert!(user_msg.contains("Please start Docker"));
+
+        let container_error = DockaError::ContainerNotFound {
+            name: "web-app".to_string(),
+        };
+        let user_msg = container_error.user_message();
+        assert!(user_msg.contains("web-app"));
+        assert!(user_msg.contains("not found"));
+    }
+
+    #[test]
+    fn test_docka_result_type() {
+        // Test DockaResult type alias
+        // DockaResult型エイリアスのテスト
+
+        fn success_operation() -> DockaResult<String> {
+            Ok("success".to_string())
+        }
+
+        fn failure_operation() -> DockaResult<String> {
+            Err(DockaError::invalid_input("test error"))
+        }
+
+        assert!(success_operation().is_ok());
+        assert!(failure_operation().is_err());
+
+        match failure_operation() {
+            Ok(_) => panic!("Should be error"),
+            Err(DockaError::InvalidInput { message }) => {
+                assert_eq!(message, "test error");
+            }
+            Err(_) => panic!("Wrong error type"),
+        }
+    }
+
+    #[test]
+    fn test_error_chain() {
+        // Test error chaining with anyhow integration
+        // anyhow統合によるエラーチェインのテスト
+
+        use std::io;
+
+        fn nested_operation() -> DockaResult<()> {
+            let io_error = io::Error::new(io::ErrorKind::NotFound, "file not found");
+            Err(DockaError::Io(io_error))
+        }
+
+        let result = nested_operation();
+        assert!(result.is_err());
+
+        let error = result.unwrap_err();
+        assert!(matches!(error, DockaError::Io(_)));
+
+        // Test that the original error is preserved
+        // 元のエラーが保持されていることをテスト
+        if let DockaError::Io(io_err) = error {
+            assert_eq!(io_err.kind(), io::ErrorKind::NotFound);
+        }
+    }
+}
