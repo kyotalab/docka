@@ -379,6 +379,7 @@ dependencies = [
  "mockall",
  "ratatui",
  "serde",
+ "serde_json",
  "tempfile",
  "thiserror",
  "tokio",
