@@ -13,7 +13,7 @@ use std::fmt::{self, Display};
 /// and provides validation to ensure the ID meets Docker's requirements.
 ///
 /// この型はコンテナIDを他の文字列値と混同することを防ぎ、
-/// IDがDockerの要件を満たすことを保証する検証を提供します。
+/// `IDがDockerの要件を満たすことを保証する検証を提供します`。
 ///
 /// # Examples
 ///
@@ -34,8 +34,8 @@ use std::fmt::{self, Display};
 pub struct ContainerId(String);
 
 impl ContainerId {
-    /// Create a new ContainerId with validation
-    /// 検証付きで新しいContainerIdを作成
+    /// Create a new `ContainerId` with validation
+    /// `検証付きで新しいContainerIdを作成`
     ///
     /// # Arguments
     /// * `id` - The container ID string to validate and wrap
@@ -83,8 +83,8 @@ impl ContainerId {
         Ok(Self(id))
     }
 
-    /// Create ContainerId from trusted source without validation
-    /// 検証なしで信頼できるソースからContainerIdを作成
+    /// Create `ContainerId` from trusted source without validation
+    /// `検証なしで信頼できるソースからContainerIdを作成`
     ///
     /// # Safety
     /// This method should only be used when the ID is known to be valid,
@@ -102,6 +102,7 @@ impl ContainerId {
     /// Get the container ID as a string slice
     /// コンテナIDを文字列スライスとして取得
     #[must_use]
+    #[allow(clippy::missing_const_for_fn)] // Rust language limitation: String deref is not const
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -141,7 +142,7 @@ impl AsRef<str> for ContainerId {
 }
 
 impl From<ContainerId> for String {
-    fn from(id: ContainerId) -> String {
+    fn from(id: ContainerId) -> Self {
         id.0
     }
 }
