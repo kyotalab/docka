@@ -137,6 +137,13 @@ impl Container {
         self.status.can_pause()
     }
 
+    /// Check if container can be resumed from pause
+    /// コンテナが一時停止から再開可能かチェック
+    #[must_use]
+    pub const fn can_unpause(&self) -> bool {
+        self.status.can_unpause()
+    }
+
     /// Check if container can be removed
     /// コンテナが削除可能かチェック
     #[must_use]
@@ -808,5 +815,83 @@ mod tests {
             serde_json::from_str(&json).expect("Deserialization should work");
 
         assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_container_pause_unpause_operations() {
+        // Test container pause/unpause capability checks
+        // コンテナ一時停止/再開可能性チェックのテスト
+
+        let running_container = Container::builder()
+            .id("pause-test-123")
+            .image("nginx:latest")
+            .status(ContainerStatus::Running)
+            .build()
+            .unwrap();
+
+        let paused_container = Container::builder()
+            .id("unpause-test-123")
+            .image("nginx:latest")
+            .status(ContainerStatus::Paused)
+            .build()
+            .unwrap();
+
+        let stopped_container = Container::builder()
+            .id("stopped-test-123")
+            .image("nginx:latest")
+            .status(ContainerStatus::Stopped)
+            .build()
+            .unwrap();
+
+        // Running container can be paused but not unpaused
+        // 実行中のコンテナは一時停止可能だが一時停止解除は不可
+        assert!(running_container.can_pause());
+        assert!(!running_container.can_unpause());
+
+        // Paused container can be unpaused but not paused
+        // 一時停止中のコンテナは一時停止解除可能だが一時停止は不可
+        assert!(!paused_container.can_pause());
+        assert!(paused_container.can_unpause());
+
+        // Stopped container can neither be paused nor unpaused
+        // 停止中のコンテナは一時停止も一時停止解除も不可
+        assert!(!stopped_container.can_pause());
+        assert!(!stopped_container.can_unpause());
+    }
+
+    #[test]
+    fn test_container_pause_unpause_capability() {
+        // Test pause/unpause capability checks
+        // 一時停止/再開可能性チェックのテスト
+
+        let test_cases = vec![
+            (ContainerStatus::Running, true, false), // can_pause, cannot_unpause
+            (ContainerStatus::Paused, false, true),  // cannot_pause, can_unpause
+            (ContainerStatus::Stopped, false, false), // cannot_pause, cannot_unpause
+            (ContainerStatus::Starting, false, false), // cannot_pause, cannot_unpause
+        ];
+
+        for (status, expected_can_pause, expected_can_unpause) in test_cases {
+            let container = Container::builder()
+                .id("test-container")
+                .image("nginx:latest")
+                .status(status.clone())
+                .build()
+                .unwrap();
+
+            assert_eq!(
+                container.can_pause(),
+                expected_can_pause,
+                "can_pause() failed for status: {}",
+                status
+            );
+
+            assert_eq!(
+                container.can_unpause(),
+                expected_can_unpause,
+                "can_unpause() failed for status: {}",
+                status
+            );
+        }
     }
 }

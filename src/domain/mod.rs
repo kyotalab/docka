@@ -56,6 +56,10 @@ pub use entities::{Image, ImageBuilder};
 /// Strong-typedコンテナ識別子
 pub use value_objects::{ContainerId, ContainerStatus};
 
+/// Repository traits for data access abstraction
+/// データアクセス抽象化用リポジトリtrait
+pub use repositories::DockerRepository;
+
 // Phase 2/3 で追加予定の再エクスポート (コメントアウト)
 // Re-exports to be added in Phase 2/3 (commented out)
 
@@ -67,6 +71,11 @@ pub use value_objects::{ContainerId, ContainerStatus};
 // /// ネットワークドメインエンティティ（Phase 2）
 // pub use entities::Network;
 
-// /// Repository traits (Phase 1.2)
-// /// リポジトリtrait（Phase 1.2）
-// pub use repositories::{DockerRepository, CacheRepository};
+// /// Cache repository trait (Phase 1.3)
+// /// キャッシュリポジトリtrait（Phase 1.3）
+// pub use repositories::CacheRepository;
+
+// Test utilities (only available in test builds)
+// テストユーティリティ（テストビルドでのみ利用可能）
+#[cfg(test)]
+pub use repositories::MockDockerRepository;
