@@ -882,15 +882,13 @@ mod tests {
             assert_eq!(
                 container.can_pause(),
                 expected_can_pause,
-                "can_pause() failed for status: {}",
-                status
+                "can_pause() failed for status: {status}"
             );
 
             assert_eq!(
                 container.can_unpause(),
                 expected_can_unpause,
-                "can_unpause() failed for status: {}",
-                status
+                "can_unpause() failed for status: {status}"
             );
         }
     }

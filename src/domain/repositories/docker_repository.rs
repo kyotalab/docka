@@ -355,6 +355,7 @@ pub struct MockDockerRepository {
 impl MockDockerRepository {
     /// Create a new mock repository
     /// 新しいモックリポジトリを作成
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -539,7 +540,7 @@ mod tests {
     async fn create_test_container(id: &str, status: ContainerStatus) -> Container {
         Container::builder()
             .id(id)
-            .name(format!("test-{}", id))
+            .name(format!("test-{id}"))
             .image("nginx:latest")
             .status(status)
             .build()
@@ -657,11 +658,7 @@ mod tests {
         // Start stopped container
         // 停止中のコンテナを開始
         let result = repo.start_container(&container_id).await;
-        assert!(
-            result.is_ok(),
-            "Start operation should succeed: {:?}",
-            result
-        );
+        assert!(result.is_ok(), "Start operation should succeed: {result:?}");
 
         // Verify status changed to Running
         // ステータスがRunningに変更されたことを確認
@@ -725,11 +722,7 @@ mod tests {
         // Stop running container
         // 実行中のコンテナを停止
         let result = repo.stop_container(&container_id).await;
-        assert!(
-            result.is_ok(),
-            "Stop operation should succeed: {:?}",
-            result
-        );
+        assert!(result.is_ok(), "Stop operation should succeed: {result:?}");
 
         // Verify status changed to Stopped
         // ステータスがStoppedに変更されたことを確認
@@ -908,20 +901,18 @@ mod tests {
                 "stop" => repo.stop_container(&container_id).await,
                 "pause" => repo.pause_container(&container_id).await,
                 "unpause" => repo.unpause_container(&container_id).await,
-                _ => panic!("Unknown operation: {}", operation),
+                _ => panic!("Unknown operation: {operation}"),
             };
 
             assert!(
                 result.is_err(),
-                "Operation {} should fail for container in {} state",
-                operation,
-                initial_status
+                "Operation {operation} should fail for container in {initial_status} state"
             );
 
             if let Err(crate::error::DockaError::InvalidInput { message }) = result {
                 assert!(message.contains("cannot be"));
             } else {
-                panic!("Expected InvalidInput error for operation {}", operation);
+                panic!("Expected InvalidInput error for operation {operation}");
             }
 
             // Clean up for next test

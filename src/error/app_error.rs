@@ -359,7 +359,7 @@ mod tests {
         let container_not_found = DockaError::ContainerNotFound {
             name: "test-container".to_string(),
         };
-        let message = format!("{}", container_not_found);
+        let message = format!("{container_not_found}");
         assert!(message.contains("test-container"));
         assert!(message.contains("not found"));
     }
@@ -399,8 +399,7 @@ mod tests {
         for error in recoverable_errors {
             assert!(
                 error.is_recoverable(),
-                "Error should be recoverable: {:?}",
-                error
+                "Error should be recoverable: {error:?}"
             );
         }
 
@@ -417,8 +416,7 @@ mod tests {
         for error in non_recoverable_errors {
             assert!(
                 !error.is_recoverable(),
-                "Error should not be recoverable: {:?}",
-                error
+                "Error should not be recoverable: {error:?}"
             );
         }
     }

@@ -166,7 +166,7 @@ pub use domain::{Container, ContainerBuilder, ContainerFilter, ContainerId, Cont
 pub use domain::{Image, ImageBuilder};
 
 /// Repository trait for Docker API operations.
-/// Docker API操作用リポジトリtrait。
+/// Docker `API操作用リポジトリtrait`。
 pub use domain::DockerRepository;
 
 // Test utilities (only available in test builds)

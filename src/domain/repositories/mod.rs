@@ -41,7 +41,7 @@
 //! ```
 
 /// Docker API operations repository trait
-/// Docker API操作リポジトリtrait
+/// Docker `API操作リポジトリtrait`
 pub mod docker_repository;
 
 // Phase 1.3 で実装予定
@@ -62,7 +62,7 @@ pub mod docker_repository;
 // 便利なアクセスのため再エクスポート
 
 /// Docker API operations repository trait
-/// Docker API操作リポジトリtrait
+/// Docker `API操作リポジトリtrait`
 ///
 /// This trait provides a clean abstraction over Docker API operations,
 /// allowing for dependency injection and testing through mock implementations.
@@ -88,14 +88,14 @@ pub use docker_repository::DockerRepository;
 // Test utilities re-export
 // テストユーティリティの再エクスポート
 
-/// Mock implementation of DockerRepository for testing
-/// テスト用DockerRepositoryのモック実装
+/// Mock implementation of `DockerRepository` for testing
+/// `テスト用DockerRepositoryのモック実装`
 ///
-/// This mock provides a complete in-memory implementation of the DockerRepository
+/// This mock provides a complete in-memory implementation of the `DockerRepository`
 /// trait for unit testing without requiring actual Docker daemon.
 ///
 /// このモックは実際のDocker daemonを必要とせずに単体テストのための
-/// DockerRepositoryトレイトの完全なインメモリ実装を提供します。
+/// `DockerRepositoryトレイトの完全なインメモリ実装を提供します`。
 ///
 /// # Examples
 ///

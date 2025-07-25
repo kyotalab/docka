@@ -190,7 +190,7 @@ mod tests {
 
         for id_str in valid_ids {
             let result = ContainerId::new(id_str);
-            assert!(result.is_ok(), "ID '{}' should be valid", id_str);
+            assert!(result.is_ok(), "ID '{id_str}' should be valid");
 
             let id = result.unwrap();
             assert_eq!(id.as_str(), id_str);
@@ -213,18 +213,16 @@ mod tests {
 
         for (id_str, expected_error_part) in invalid_ids {
             let result = ContainerId::new(id_str);
-            assert!(result.is_err(), "ID '{}' should be invalid", id_str);
+            assert!(result.is_err(), "ID '{id_str}' should be invalid");
 
             let error = result.unwrap_err();
             if let DockaError::InvalidInput { message } = error {
                 assert!(
                     message.contains(expected_error_part),
-                    "Error message '{}' should contain '{}'",
-                    message,
-                    expected_error_part
+                    "Error message '{message}' should contain '{expected_error_part}'"
                 );
             } else {
-                panic!("Expected InvalidInput error, got {:?}", error);
+                panic!("Expected InvalidInput error, got {error:?}");
             }
         }
     }
@@ -331,7 +329,7 @@ mod tests {
         // HashMapでのテスト
         let mut map = HashMap::new();
         map.insert(id1.clone(), "value1");
-        map.insert(id2.clone(), "value2"); // Should overwrite
+        map.insert(id2, "value2"); // Should overwrite
 
         assert_eq!(map.len(), 1);
         assert_eq!(map.get(&id1), Some(&"value2"));
