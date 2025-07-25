@@ -32,34 +32,33 @@
 //! Currently implementing MVP functionality:
 //! - ✅ Error handling system
 //! - ✅ Domain entities and value objects
+//! - ✅ Repository trait definitions
 //! - 🚧 Docker API integration
 //! - 🚧 Basic TUI components
 //!
 //! ## Usage
 //!
 //! ```rust,no_run
-//! use docka::{DockaResult, DockaError};
-//! use docka::domain::{Container, ContainerStatus, Image};
+//! use docka::{DockaResult, DockaError, DockerRepository};
+//! use docka::domain::{Container, ContainerStatus, ContainerId};
 //!
-//! fn main() -> DockaResult<()> {
-//!     // Example container creation
-//!     let container = Container::builder()
-//!         .id("web-app-123")
-//!         .name("web-application")
-//!         .image("nginx:latest")
-//!         .status(ContainerStatus::Running)
-//!         .build()?;
+//! async fn example_docker_operations<R: DockerRepository>(
+//!     repo: &R
+//! ) -> DockaResult<()> {
+//!     // List all containers
+//!     let containers = repo.list_containers().await?;
+//!     println!("Found {} containers", containers.len());
 //!
-//!     println!("Container {} is {}", container.display_name(), container.status);
+//!     // Operate on first container if available
+//!     if let Some(container) = containers.first() {
+//!         println!("Container {} is {}", container.display_name(), container.status);
 //!
-//!     // Example image handling
-//!     let image = Image::builder()
-//!         .id("sha256:abc123")
-//!         .repository("nginx")
-//!         .tag("latest")
-//!         .build()?;
+//!         if container.can_stop() {
+//!             repo.stop_container(&container.id).await?;
+//!             println!("Stopped container {}", container.display_name());
+//!         }
+//!     }
 //!
-//!     println!("Image: {}", image.display_name()); // Prints "nginx" (Docker CLI style)
 //!     Ok(())
 //! }
 //! ```
@@ -165,3 +164,15 @@ pub use domain::{Container, ContainerBuilder, ContainerFilter, ContainerId, Cont
 /// Image domain entity (basic implementation for Phase 1).
 /// イメージドメインエンティティ（Phase 1用基本実装）。
 pub use domain::{Image, ImageBuilder};
+
+/// Repository trait for Docker API operations.
+/// Docker API操作用リポジトリtrait。
+pub use domain::DockerRepository;
+
+// Test utilities (only available in test builds)
+// テストユーティリティ（テストビルドでのみ利用可能）
+
+/// Mock Docker repository implementation for testing.
+/// テスト用モックDockerリポジトリ実装。
+#[cfg(test)]
+pub use domain::MockDockerRepository;
