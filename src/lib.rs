@@ -31,7 +31,7 @@
 //!
 //! Currently implementing MVP functionality:
 //! - ✅ Error handling system
-//! - 🚧 Domain entities and repositories
+//! - ✅ Domain entities and value objects
 //! - 🚧 Docker API integration
 //! - 🚧 Basic TUI components
 //!
@@ -39,10 +39,19 @@
 //!
 //! ```rust,no_run
 //! use docka::{DockaResult, DockaError};
+//! use docka::domain::{Container, ContainerStatus};
 //!
 //! fn main() -> DockaResult<()> {
-//!     // Application initialization will be implemented in Phase 1
-//!     todo!("Main application loop - Phase 1 implementation")
+//!     // Example container creation
+//!     let container = Container::builder()
+//!         .id("web-app-123")
+//!         .name("web-application")
+//!         .image("nginx:latest")
+//!         .status(ContainerStatus::Running)
+//!         .build()?;
+//!
+//!     println!("Container {} is {}", container.display_name(), container.status);
+//!     Ok(())
 //! }
 //! ```
 
@@ -69,18 +78,18 @@
 /// ```
 pub mod error;
 
+/// Domain layer containing core business logic and entities.
+///
+/// This layer defines the core domain models and business rules for Docker
+/// container management, independent of external frameworks or infrastructure.
+///
+/// コアビジネスロジックとエンティティを含むドメイン層。
+/// 外部フレームワークやインフラに依存しない、Dockerコンテナ管理の
+/// コアドメインモデルとビジネスルールを定義します。
+pub mod domain;
+
 // Phase 1 implementation modules - uncomment as implemented
 // Phase 1実装モジュール - 実装時にコメントアウト解除
-
-// /// Domain layer containing core business logic and entities.
-// ///
-// /// This layer defines the core domain models and business rules for Docker
-// /// container management, independent of external frameworks or infrastructure.
-// ///
-// /// コアビジネスロジックとエンティティを含むドメイン層。
-// /// 外部フレームワークやインフラに依存しない、Dockerコンテナ管理の
-// /// コアドメインモデルとビジネスルールを定義します。
-// pub mod domain;
 
 // /// Application layer containing use cases and services.
 // ///
@@ -139,3 +148,11 @@ pub use error::DockaError;
 /// Convenient Result type alias for docka operations.
 /// docka操作用便利なResult型エイリアス。
 pub use error::DockaResult;
+
+/// Container domain entity and related types.
+/// コンテナドメインエンティティと関連型。
+pub use domain::{Container, ContainerBuilder, ContainerFilter, ContainerId, ContainerStatus};
+
+/// Image domain entity (basic implementation for Phase 1).
+/// イメージドメインエンティティ（Phase 1用基本実装）。
+pub use domain::entities::Image;
