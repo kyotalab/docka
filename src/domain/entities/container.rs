@@ -37,7 +37,7 @@ use std::collections::HashMap;
 /// assert!(container.is_running());
 /// assert!(container.can_stop());
 /// ```
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Container {
     /// Unique container identifier
     /// 一意なコンテナ識別子
@@ -96,7 +96,7 @@ impl Container {
     /// Check if container is stopped
     /// コンテナが停止中かチェック
     #[must_use]
-    pub fn is_stopped(&self) -> bool {
+    pub const fn is_stopped(&self) -> bool {
         matches!(
             self.status,
             ContainerStatus::Stopped | ContainerStatus::Exited { .. }
@@ -106,7 +106,7 @@ impl Container {
     /// Check if container is in a transitional state
     /// コンテナが遷移状態かチェック
     #[must_use]
-    pub fn is_transitioning(&self) -> bool {
+    pub const fn is_transitioning(&self) -> bool {
         matches!(
             self.status,
             ContainerStatus::Starting
@@ -119,35 +119,35 @@ impl Container {
     /// Check if container can be started
     /// コンテナが開始可能かチェック
     #[must_use]
-    pub fn can_start(&self) -> bool {
+    pub const fn can_start(&self) -> bool {
         self.status.can_start()
     }
 
     /// Check if container can be stopped
     /// コンテナが停止可能かチェック
     #[must_use]
-    pub fn can_stop(&self) -> bool {
+    pub const fn can_stop(&self) -> bool {
         self.status.can_stop()
     }
 
     /// Check if container can be paused
     /// コンテナが一時停止可能かチェック
     #[must_use]
-    pub fn can_pause(&self) -> bool {
+    pub const fn can_pause(&self) -> bool {
         self.status.can_pause()
     }
 
     /// Check if container can be removed
     /// コンテナが削除可能かチェック
     #[must_use]
-    pub fn can_remove(&self) -> bool {
+    pub const fn can_remove(&self) -> bool {
         self.status.can_remove()
     }
 
     /// Check if container can be restarted
     /// コンテナが再起動可能かチェック
     #[must_use]
-    pub fn can_restart(&self) -> bool {
+    pub const fn can_restart(&self) -> bool {
         self.status.can_restart()
     }
 
@@ -327,7 +327,7 @@ impl ContainerBuilder {
     /// Set container status
     /// コンテナステータスを設定
     #[must_use]
-    pub fn status(mut self, status: ContainerStatus) -> Self {
+    pub const fn status(mut self, status: ContainerStatus) -> Self {
         self.status = Some(status);
         self
     }
@@ -335,7 +335,7 @@ impl ContainerBuilder {
     /// Set creation timestamp
     /// 作成タイムスタンプを設定
     #[must_use]
-    pub fn created_at(mut self, created_at: DateTime<Utc>) -> Self {
+    pub const fn created_at(mut self, created_at: DateTime<Utc>) -> Self {
         self.created_at = Some(created_at);
         self
     }
@@ -505,7 +505,7 @@ impl ContainerFilter {
         // ラベルフィルタのチェック
         for (key, value) in &self.labels {
             match container.get_label(key) {
-                Some(container_value) if container_value == value => continue,
+                Some(container_value) if container_value == value => {}
                 _ => return false,
             }
         }

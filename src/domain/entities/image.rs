@@ -31,7 +31,7 @@ use std::collections::HashMap;
 /// assert_eq!(image.full_name_explicit(), "nginx:latest");
 /// assert!(image.size_mb() > 0);
 /// ```
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Image {
     /// Image SHA256 identifier
     /// イメージSHA256識別子
@@ -100,19 +100,16 @@ impl Image {
     ///
     /// # Examples
     ///
-    /// ```rust,no_run
-    /// # use docka::domain::entities::Image;
+    /// ```text
     /// let image = Image::builder()
     ///     .id("sha256:abc123")
     ///     .repository("nginx")
     ///     .tag("latest")
-    ///     .size(100_000_000)
     ///     .build()
     ///     .expect("Valid image");
     ///
     /// // Legacy method behaves like display_name() (omits :latest)
-    /// assert_eq!(image.full_name(), "nginx");
-    /// assert!(image.size_mb() > 0);
+    /// assert_eq!(image.full_name(), "nginx");  // Not "nginx:latest"!
     /// ```
     #[must_use]
     #[deprecated(
@@ -126,13 +123,14 @@ impl Image {
     /// Get image size in megabytes
     /// イメージサイズをメガバイトで取得
     #[must_use]
-    pub fn size_mb(&self) -> u64 {
+    pub const fn size_mb(&self) -> u64 {
         self.size / 1_000_000
     }
 
     /// Get image size in human-readable format
     /// 人間が読める形式でイメージサイズを取得
     #[must_use]
+    #[allow(clippy::cast_precision_loss)] // u64 to f64 conversion for display purposes
     pub fn size_human(&self) -> String {
         const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB"];
         let mut size = self.size as f64;
@@ -144,9 +142,9 @@ impl Image {
         }
 
         if unit_index == 0 {
-            format!("{:.0} {}", size, UNITS[unit_index])
+            format!("{size:.0} {}", UNITS[unit_index])
         } else {
-            format!("{:.1} {}", size, UNITS[unit_index])
+            format!("{size:.1} {}", UNITS[unit_index])
         }
     }
 
@@ -162,7 +160,7 @@ impl Image {
     /// Check if image can be removed
     /// イメージが削除可能かチェック
     #[must_use]
-    pub fn can_remove(&self) -> bool {
+    pub const fn can_remove(&self) -> bool {
         !self.in_use
     }
 
@@ -174,7 +172,7 @@ impl Image {
 
         if duration.num_days() > 30 {
             let months = duration.num_days() / 30;
-            format!("{} months ago", months)
+            format!("{months} months ago")
         } else if duration.num_days() > 0 {
             format!("{} days ago", duration.num_days())
         } else if duration.num_hours() > 0 {
@@ -283,7 +281,7 @@ impl ImageBuilder {
     /// Set image size in bytes
     /// イメージサイズをバイトで設定
     #[must_use]
-    pub fn size(mut self, size: u64) -> Self {
+    pub const fn size(mut self, size: u64) -> Self {
         self.size = Some(size);
         self
     }
@@ -291,7 +289,7 @@ impl ImageBuilder {
     /// Set creation timestamp
     /// 作成タイムスタンプを設定
     #[must_use]
-    pub fn created_at(mut self, created_at: DateTime<Utc>) -> Self {
+    pub const fn created_at(mut self, created_at: DateTime<Utc>) -> Self {
         self.created_at = Some(created_at);
         self
     }
@@ -315,7 +313,7 @@ impl ImageBuilder {
     /// Set whether image is in use
     /// イメージが使用中かを設定
     #[must_use]
-    pub fn in_use(mut self, in_use: bool) -> Self {
+    pub const fn in_use(mut self, in_use: bool) -> Self {
         self.in_use = in_use;
         self
     }

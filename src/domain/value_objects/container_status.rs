@@ -148,41 +148,20 @@ impl ContainerStatus {
     #[must_use]
     pub fn can_transition_to(&self, target: &Self) -> bool {
         match (self, target) {
-            // From Running
-            // Runningから
-            (Self::Running, Self::Stopping | Self::Paused | Self::Restarting) => true,
-
-            // From Stopped
-            // Stoppedから
-            (Self::Stopped, Self::Starting | Self::Removing) => true,
-
-            // From Starting
-            // Startingから
-            (Self::Starting, Self::Running | Self::Exited { .. } | Self::Dead) => true,
-
-            // From Stopping
-            // Stoppingから
-            (Self::Stopping, Self::Stopped | Self::Exited { .. }) => true,
-
-            // From Paused
-            // Pausedから
-            (Self::Paused, Self::Running | Self::Stopping) => true,
-
-            // From Restarting
-            // Restartingから
-            (Self::Restarting, Self::Running | Self::Exited { .. } | Self::Dead) => true,
-
-            // From Exited
-            // Exitedから
-            (Self::Exited { .. }, Self::Starting | Self::Removing) => true,
-
-            // From Created
-            // Createdから
-            (Self::Created, Self::Starting | Self::Removing) => true,
-
-            // From Dead
-            // Deadから
-            (Self::Dead, Self::Removing) => true,
+            // Valid transitions that return true
+            // 有効な遷移（trueを返す）
+            (Self::Running, Self::Stopping | Self::Paused | Self::Restarting)
+            | (
+                Self::Stopped | Self::Created | Self::Exited { .. },
+                Self::Starting | Self::Removing,
+            )
+            | (
+                Self::Starting | Self::Restarting,
+                Self::Running | Self::Exited { .. } | Self::Dead,
+            )
+            | (Self::Stopping, Self::Stopped | Self::Exited { .. })
+            | (Self::Paused, Self::Running | Self::Stopping)
+            | (Self::Dead, Self::Removing) => true,
 
             // From Removing (terminal state)
             // Removingから（終端状態）
@@ -201,7 +180,7 @@ impl ContainerStatus {
     /// Get a human-readable description of the status
     /// ステータスの人間が読める説明を取得
     #[must_use]
-    pub fn description(&self) -> &'static str {
+    pub const fn description(&self) -> &'static str {
         match self {
             Self::Running => "Container is running",
             Self::Stopped => "Container is stopped",
@@ -238,8 +217,8 @@ impl ContainerStatus {
     /// Parse status from Docker API string
     /// Docker API文字列からステータスを解析
     ///
-    /// Converts Docker API status strings to ContainerStatus enum.
-    /// Docker APIステータス文字列をContainerStatus列挙型に変換します。
+    /// Converts Docker API status strings to `ContainerStatus` enum.
+    /// Docker `APIステータス文字列をContainerStatus列挙型に変換します`。
     #[must_use]
     pub fn from_docker_string(status: &str) -> Self {
         match status.to_lowercase().as_str() {
@@ -278,14 +257,14 @@ impl Display for ContainerStatus {
             Self::Stopped => "Stopped",
             Self::Starting => "Starting",
             Self::Stopping => "Stopping",
-            Self::Exited { exit_code } => return write!(f, "Exited ({})", exit_code),
+            Self::Exited { exit_code } => return write!(f, "Exited ({exit_code})"),
             Self::Paused => "Paused",
             Self::Restarting => "Restarting",
             Self::Removing => "Removing",
             Self::Dead => "Dead",
             Self::Created => "Created",
         };
-        write!(f, "{}", status_str)
+        write!(f, "{status_str}")
     }
 }
 
