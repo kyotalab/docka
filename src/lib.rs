@@ -39,7 +39,7 @@
 //!
 //! ```rust,no_run
 //! use docka::{DockaResult, DockaError};
-//! use docka::domain::{Container, ContainerStatus};
+//! use docka::domain::{Container, ContainerStatus, Image};
 //!
 //! fn main() -> DockaResult<()> {
 //!     // Example container creation
@@ -51,6 +51,15 @@
 //!         .build()?;
 //!
 //!     println!("Container {} is {}", container.display_name(), container.status);
+//!
+//!     // Example image handling
+//!     let image = Image::builder()
+//!         .id("sha256:abc123")
+//!         .repository("nginx")
+//!         .tag("latest")
+//!         .build()?;
+//!
+//!     println!("Image: {}", image.display_name()); // Prints "nginx" (Docker CLI style)
 //!     Ok(())
 //! }
 //! ```
@@ -155,4 +164,4 @@ pub use domain::{Container, ContainerBuilder, ContainerFilter, ContainerId, Cont
 
 /// Image domain entity (basic implementation for Phase 1).
 /// イメージドメインエンティティ（Phase 1用基本実装）。
-pub use domain::entities::Image;
+pub use domain::{Image, ImageBuilder};

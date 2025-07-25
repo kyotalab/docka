@@ -28,7 +28,7 @@ use std::collections::HashMap;
 ///     .build()
 ///     .expect("Valid image");
 ///
-/// assert_eq!(image.full_name(), "nginx:latest");
+/// assert_eq!(image.full_name_explicit(), "nginx:latest");
 /// assert!(image.size_mb() > 0);
 /// ```
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -70,15 +70,57 @@ impl Image {
         ImageBuilder::new()
     }
 
-    /// Get the full image name (repository:tag)
-    /// 完全なイメージ名を取得（リポジトリ:タグ）
+    /// Get the display name for UI (Docker CLI compatible, :latest omitted)
+    /// UI表示用の名前を取得（Docker CLI互換、:latest省略）
     #[must_use]
-    pub fn full_name(&self) -> String {
-        if self.tag.is_empty() {
+    pub fn display_name(&self) -> String {
+        if self.tag.is_empty() || self.tag == "latest" {
             self.repository.clone()
         } else {
             format!("{}:{}", self.repository, self.tag)
         }
+    }
+
+    /// Get the full image name with explicit tag (always includes tag)
+    /// 明示的なタグ付き完全イメージ名を取得（常にタグを含む）
+    #[must_use]
+    pub fn full_name_explicit(&self) -> String {
+        let tag = if self.tag.is_empty() {
+            "latest"
+        } else {
+            &self.tag
+        };
+        format!("{}:{}", self.repository, tag)
+    }
+
+    /// Get the full image name (repository:tag) - Legacy method for backward compatibility
+    /// 完全なイメージ名を取得（リポジトリ:タグ）- 後方互換性のためのレガシーメソッド
+    ///
+    /// **Deprecated**: Use `display_name()` for UI display or `full_name_explicit()` for explicit tag
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// # use docka::domain::entities::Image;
+    /// let image = Image::builder()
+    ///     .id("sha256:abc123")
+    ///     .repository("nginx")
+    ///     .tag("latest")
+    ///     .size(100_000_000)
+    ///     .build()
+    ///     .expect("Valid image");
+    ///
+    /// // Legacy method behaves like display_name() (omits :latest)
+    /// assert_eq!(image.full_name(), "nginx");
+    /// assert!(image.size_mb() > 0);
+    /// ```
+    #[must_use]
+    #[deprecated(
+        since = "0.1.0",
+        note = "Use display_name() or full_name_explicit() instead"
+    )]
+    pub fn full_name(&self) -> String {
+        self.display_name()
     }
 
     /// Get image size in megabytes
@@ -368,9 +410,9 @@ mod tests {
     }
 
     #[test]
-    fn test_image_full_name() {
-        // Test full name formatting
-        // 完全名フォーマットのテスト
+    fn test_image_display_name() {
+        // Test display name formatting (Docker CLI compatible)
+        // 表示名フォーマットのテスト（Docker CLI互換）
 
         let latest_image = Image::builder()
             .id("test")
@@ -378,7 +420,68 @@ mod tests {
             .tag("latest")
             .build()
             .unwrap();
-        assert_eq!(latest_image.full_name(), "nginx:latest");
+        assert_eq!(latest_image.display_name(), "nginx"); // :latest omitted
+
+        let tagged_image = Image::builder()
+            .id("test")
+            .repository("nginx")
+            .tag("1.21")
+            .build()
+            .unwrap();
+        assert_eq!(tagged_image.display_name(), "nginx:1.21");
+
+        let empty_tag_image = Image::builder()
+            .id("test")
+            .repository("nginx")
+            .tag("")
+            .build()
+            .unwrap();
+        assert_eq!(empty_tag_image.display_name(), "nginx");
+    }
+
+    #[test]
+    fn test_image_full_name_explicit() {
+        // Test explicit full name formatting (always shows tag)
+        // 明示的完全名フォーマットのテスト（常にタグ表示）
+
+        let latest_image = Image::builder()
+            .id("test")
+            .repository("nginx")
+            .tag("latest")
+            .build()
+            .unwrap();
+        assert_eq!(latest_image.full_name_explicit(), "nginx:latest");
+
+        let tagged_image = Image::builder()
+            .id("test")
+            .repository("nginx")
+            .tag("1.21")
+            .build()
+            .unwrap();
+        assert_eq!(tagged_image.full_name_explicit(), "nginx:1.21");
+
+        let empty_tag_image = Image::builder()
+            .id("test")
+            .repository("nginx")
+            .tag("")
+            .build()
+            .unwrap();
+        assert_eq!(empty_tag_image.full_name_explicit(), "nginx:latest"); // Empty tag becomes latest
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_image_full_name_legacy() {
+        // Test legacy full_name method (for backward compatibility)
+        // レガシーfull_nameメソッドのテスト（後方互換性用）
+
+        let latest_image = Image::builder()
+            .id("test")
+            .repository("nginx")
+            .tag("latest")
+            .build()
+            .unwrap();
+        assert_eq!(latest_image.full_name(), "nginx"); // Should behave like display_name()
 
         let tagged_image = Image::builder()
             .id("test")
@@ -387,14 +490,6 @@ mod tests {
             .build()
             .unwrap();
         assert_eq!(tagged_image.full_name(), "nginx:1.21");
-
-        let empty_tag_image = Image::builder()
-            .id("test")
-            .repository("nginx")
-            .tag("")
-            .build()
-            .unwrap();
-        assert_eq!(empty_tag_image.full_name(), "nginx");
     }
 
     #[test]
