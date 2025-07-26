@@ -1,15 +1,20 @@
 // src/infrastructure/docker/bollard_client.rs
-// Bollard-based implementation of DockerRepository trait
-// DockerRepository traitのBollardベース実装
+// Fixed version addressing deprecated API warnings
+// 非推奨API警告に対応した修正版
 
 use crate::domain::entities::{Container, ContainerFilter};
 use crate::domain::repositories::DockerRepository;
 use crate::domain::value_objects::{ContainerId, ContainerStatus};
 use crate::error::{DockaError, DockaResult};
 use async_trait::async_trait;
+// Fixed: Use new OpenAPI generated types for all container operations
+// 修正: 全てのコンテナ操作で新しいOpenAPI生成型を使用
 use bollard::Docker;
-use bollard::container::{
-    ListContainersOptions, RemoveContainerOptions, StartContainerOptions, StopContainerOptions,
+use bollard::query_parameters::{
+    ListContainersOptions, ListContainersOptionsBuilder, RemoveContainerOptions,
+    RemoveContainerOptionsBuilder, RestartContainerOptions, RestartContainerOptionsBuilder,
+    StartContainerOptions, StartContainerOptionsBuilder, StopContainerOptions,
+    StopContainerOptionsBuilder,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -22,7 +27,7 @@ use tracing::{debug, error, info, warn};
 /// which is the official Rust Docker SDK. It handles all Docker daemon communication
 /// and converts between bollard types and our domain entities.
 ///
-/// このemplementationはbollardクレートを使用した具体的なDocker API操作を提供します。
+/// このimplementationはbollardクレートを使用した具体的なDocker API操作を提供します。
 /// bollardは公式のRust Docker SDKです。全てのDocker daemon通信を処理し、
 /// bollard型と我々のドメインエンティティ間の変換を行います。
 ///
@@ -32,6 +37,7 @@ use tracing::{debug, error, info, warn};
 /// - **Type Safety**: Strong typing with ContainerId and domain entities
 /// - **Async Operations**: Non-blocking operations for UI responsiveness
 /// - **Resource Management**: Efficient connection management with Arc
+/// - **Modern API**: Uses latest bollard OpenAPI generated types
 ///
 /// # Thread Safety
 ///
@@ -153,6 +159,98 @@ impl BollardDockerRepository {
     pub fn client(&self) -> &Docker {
         &self.client
     }
+
+    /// Create ListContainersOptions using the new Builder API
+    /// 新しいBuilder APIを使用してListContainersOptionsを作成
+    ///
+    /// This helper method encapsulates the creation of ListContainersOptions
+    /// using the new OpenAPI generated Builder pattern.
+    ///
+    /// このヘルパーメソッドは新しいOpenAPI生成Builderパターンを使用した
+    /// ListContainersOptionsの作成をカプセル化します。
+    fn create_list_options(all: bool) -> ListContainersOptions {
+        ListContainersOptionsBuilder::default().all(all).build()
+    }
+
+    /// Create StartContainerOptions using the new Builder API
+    /// 新しいBuilder APIを使用してStartContainerOptionsを作成
+    ///
+    /// For basic container start operations, we typically don't need additional options.
+    /// This helper provides a clean way to create default options.
+    ///
+    /// 基本的なコンテナ開始操作では、通常追加オプションは不要です。
+    /// このヘルパーはデフォルトオプションを作成するクリーンな方法を提供します。
+    fn create_start_options() -> StartContainerOptions {
+        StartContainerOptionsBuilder::default().build()
+    }
+
+    /// Create StopContainerOptions with timeout using the new Builder API
+    /// 新しいBuilder APIを使用してタイムアウト付きStopContainerOptionsを作成
+    ///
+    /// # Arguments
+    /// * `timeout_seconds` - Timeout in seconds before force killing the container
+    fn create_stop_options(timeout_seconds: u32) -> StopContainerOptions {
+        StopContainerOptionsBuilder::default()
+            .t((timeout_seconds as i64).try_into().unwrap())
+            .build()
+    }
+
+    /// Create RestartContainerOptions using the new Builder API
+    /// 新しいBuilder APIを使用してRestartContainerOptionsを作成
+    ///
+    /// # Arguments
+    /// * `timeout_seconds` - Timeout in seconds before force killing the container during restart
+    ///
+    /// For container restart operations, we can specify a timeout. If not specified,
+    /// Docker uses a default timeout (usually 10 seconds).
+    ///
+    /// コンテナ再起動操作では、タイムアウトを指定できます。指定しない場合、
+    /// Dockerはデフォルトタイムアウト（通常10秒）を使用します。
+    fn create_restart_options(timeout_seconds: Option<u32>) -> RestartContainerOptions {
+        let mut builder = RestartContainerOptionsBuilder::default();
+
+        if let Some(timeout) = timeout_seconds {
+            builder = builder.t((timeout as i64).try_into().unwrap());
+        }
+
+        builder.build()
+    }
+
+    /// Create RemoveContainerOptions using the new Builder API
+    /// 新しいBuilder APIを使用してRemoveContainerOptionsを作成
+    ///
+    /// # Arguments
+    /// * `force` - Whether to force remove running containers
+    /// * `remove_volumes` - Whether to remove associated volumes (Phase 2 feature)
+    fn create_remove_options(force: bool) -> RemoveContainerOptions {
+        RemoveContainerOptionsBuilder::default()
+            .force(force)
+            // Phase 2: Add volume removal option
+            // Phase 2: ボリューム削除オプションを追加
+            // .v(remove_volumes)
+            .build()
+    }
+    /// Create ListContainersOptions with filters (for Phase 2)
+    /// フィルタ付きListContainersOptionsを作成（Phase 2用）
+    ///
+    /// This method will be enhanced in Phase 2 to support server-side filtering
+    /// for improved performance with large numbers of containers.
+    ///
+    /// このメソッドはPhase 2で拡張され、大量のコンテナでの
+    /// パフォーマンス向上のためサーバーサイドフィルタリングをサポートします。
+    #[allow(dead_code)] // Will be used in Phase 2
+    fn create_filtered_list_options(_filter: &ContainerFilter) -> ListContainersOptions {
+        // Phase 2: Implement server-side filtering with filters like:
+        // Phase 2: 以下のようなフィルタでサーバーサイドフィルタリングを実装:
+        // ListContainersOptionsBuilder::default()
+        //     .all(true)
+        //     .filters(create_docker_filters(filter))
+        //     .build()
+
+        // For now, return basic options
+        // 現在は基本オプションを返す
+        Self::create_list_options(true)
+    }
 }
 
 #[async_trait]
@@ -160,17 +258,18 @@ impl DockerRepository for BollardDockerRepository {
     async fn list_containers(&self) -> DockaResult<Vec<Container>> {
         debug!("Listing all containers");
 
-        // Use default options to list all containers (running and stopped)
-        // 全コンテナ（実行中および停止中）をリストするためにデフォルトオプションを使用
-        let options = Some(ListContainersOptions::<String> {
-            all: true,
-            ..Default::default()
-        });
+        // Use new OpenAPI generated options with Builder pattern
+        // 新しいOpenAPI生成オプションをBuilderパターンで使用
+        let options = Self::create_list_options(true);
 
-        let containers = self.client.list_containers(options).await.map_err(|e| {
-            error!("Failed to list containers: {}", e);
-            DockaError::DockerApi(e)
-        })?;
+        let containers = self
+            .client
+            .list_containers(Some(options))
+            .await
+            .map_err(|e| {
+                error!("Failed to list containers: {}", e);
+                DockaError::DockerApi(e)
+            })?;
 
         debug!("Retrieved {} containers from Docker API", containers.len());
 
@@ -203,8 +302,8 @@ impl DockerRepository for BollardDockerRepository {
 
         // For Phase 1, we'll implement client-side filtering
         // Phase 1では、クライアントサイドフィルタリングを実装
-        // Phase 2 will optimize with server-side filtering
-        // Phase 2では、サーバーサイドフィルタリングで最適化
+        // Phase 2 will optimize with server-side filtering using create_filtered_list_options
+        // Phase 2では、create_filtered_list_optionsを使用してサーバーサイドフィルタリングで最適化
         let all_containers = self.list_containers().await?;
 
         let filtered_containers: Vec<Container> = all_containers
@@ -249,7 +348,7 @@ impl DockerRepository for BollardDockerRepository {
         }
 
         self.client
-            .start_container(id.as_str(), None::<StartContainerOptions<String>>)
+            .start_container(id.as_str(), None::<StartContainerOptions>)
             .await
             .map_err(|e| {
                 error!("Failed to start container {}: {}", id, e);
@@ -281,9 +380,9 @@ impl DockerRepository for BollardDockerRepository {
             )));
         }
 
-        let options = StopContainerOptions {
-            t: timeout_seconds as i64,
-        };
+        // Use new Builder API for stop options
+        // 停止オプションに新しいBuilder APIを使用
+        let options = Self::create_stop_options(timeout_seconds);
 
         self.client
             .stop_container(id.as_str(), Some(options))
@@ -312,10 +411,9 @@ impl DockerRepository for BollardDockerRepository {
             }
         }
 
-        let options = Some(RemoveContainerOptions {
-            force,
-            ..Default::default()
-        });
+        // Use new Builder API for remove options
+        // 削除オプションに新しいBuilder APIを使用
+        let options = Some(Self::create_remove_options(force));
 
         self.client
             .remove_container(id.as_str(), options)
@@ -342,8 +440,9 @@ impl DockerRepository for BollardDockerRepository {
             )));
         }
 
+        let options = Some(Self::create_restart_options(Some(10))); // Default 10 second timeout
         self.client
-            .restart_container(id.as_str(), None)
+            .restart_container(id.as_str(), options)
             .await
             .map_err(|e| {
                 error!("Failed to restart container {}: {}", id, e);
@@ -458,21 +557,13 @@ impl BollardDockerRepository {
             })
             .unwrap_or_else(chrono::Utc::now);
 
-        // Convert labels
-        // ラベルを変換
-        let labels = bollard_container
-            .labels
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(|(k, v)| v.map(|value| (k, value)))
-            .collect();
+        // Convert labels (bollard now uses HashMap<String, String> directly)
+        // ラベルを変換（bollardは現在HashMap<String, String>を直接使用）
+        let labels = bollard_container.labels.unwrap_or_default();
 
-        // Extract command (convert Vec<String> to single string)
-        // コマンドを抽出（Vec<String>を単一文字列に変換）
-        let command = bollard_container
-            .command
-            .map(|cmd_vec| cmd_vec.join(" "))
-            .filter(|cmd| !cmd.is_empty());
+        // Extract command (bollard now provides command as String, not Vec<String>)
+        // コマンドを抽出（bollardは現在commandをVec<String>ではなくStringで提供）
+        let command = bollard_container.command.filter(|cmd| !cmd.is_empty());
 
         // Build the domain container
         // ドメインコンテナを構築
@@ -488,6 +579,8 @@ impl BollardDockerRepository {
     }
 }
 
+// Tests remain the same as they test the conversion logic, not the API calls
+// テストは変換ロジックをテストするものであり、API呼び出しではないため同じまま
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -510,19 +603,34 @@ mod tests {
             image: Some(image.to_string()),
             status: Some(status.to_string()),
             created: Some(Utc::now().timestamp()),
-            command: Some(vec![
-                "/bin/bash".to_string(),
-                "-c".to_string(),
-                "sleep infinity".to_string(),
-            ]),
+            // Fixed: command is now String, not Vec<String>
+            // 修正: commandは現在Vec<String>ではなくString
+            command: Some("/bin/bash -c sleep infinity".to_string()),
+            // Fixed: labels is now HashMap<String, String>, not HashMap<String, Option<String>>
+            // 修正: labelsは現在HashMap<String, Option<String>>ではなくHashMap<String, String>
             labels: Some({
                 let mut labels = HashMap::new();
-                labels.insert("env".to_string(), Some("test".to_string()));
-                labels.insert("version".to_string(), Some("1.0".to_string()));
+                labels.insert("env".to_string(), "test".to_string());
+                labels.insert("version".to_string(), "1.0".to_string());
                 labels
             }),
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn test_create_list_options() {
+        // Test the new ListContainersOptions creation
+        // 新しいListContainersOptions作成のテスト
+        let options_all = BollardDockerRepository::create_list_options(true);
+        // Note: We can't directly test the internal structure due to the builder pattern,
+        // but we can verify that it compiles and creates a valid options object
+        // 注意: Builderパターンのため内部構造を直接テストできませんが、
+        // コンパイルし、有効なオプションオブジェクトを作成することを確認できます
+        drop(options_all); // Just verify it compiles
+
+        let options_running = BollardDockerRepository::create_list_options(false);
+        drop(options_running); // Just verify it compiles
     }
 
     #[test]
@@ -551,6 +659,10 @@ mod tests {
             Some("/bin/bash -c sleep infinity".to_string())
         );
     }
+
+    // Additional tests remain the same...
+    // 追加のテストは同じまま...
+    // (Including all the previous test methods for convert_container functionality)
 
     #[test]
     fn test_convert_container_minimal_data() {
