@@ -815,14 +815,12 @@ mod tests {
     fn test_convert_container_labels_processing() {
         // Test container labels processing
         // コンテナラベル処理のテスト
+        // Note: In new bollard API, empty string labels are valid values, not filtered out
+        // 注意: 新しいbollard APIでは、空文字列ラベルは有効な値であり、フィルタアウトされません
         let mut docker_labels = HashMap::new();
-        docker_labels.insert("env".to_string(), Some("production".to_string()));
-        docker_labels.insert("version".to_string(), Some("2.1.0".to_string()));
-        docker_labels.insert("empty_label".to_string(), None); // Should be filtered out
-        docker_labels.insert(
-            "maintainer".to_string(),
-            Some("team@company.com".to_string()),
-        );
+        docker_labels.insert("env".to_string(), "production".to_string()); // String
+        docker_labels.insert("version".to_string(), "2.1.0".to_string());
+        docker_labels.insert("maintainer".to_string(), "team@company.com".to_string());
 
         let bollard_container = ContainerSummary {
             id: Some("test-labels-123".to_string()),
