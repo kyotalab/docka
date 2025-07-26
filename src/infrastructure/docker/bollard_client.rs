@@ -518,7 +518,7 @@ impl BollardDockerRepository {
     ///
     /// `このメソッドはbollardのAPI型と我々の強く型付けされた`
     /// ドメインエンティティ間の複雑な変換を処理します。
-    fn convert_container(
+    pub fn convert_container(
         bollard_container: bollard::models::ContainerSummary,
     ) -> DockaResult<Container> {
         // Extract container ID (required field)
