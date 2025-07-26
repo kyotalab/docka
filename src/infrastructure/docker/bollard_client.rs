@@ -518,6 +518,7 @@ impl BollardDockerRepository {
     ///
     /// `このメソッドはbollardのAPI型と我々の強く型付けされた`
     /// ドメインエンティティ間の複雑な変換を処理します。
+    #[allow(clippy::missing_errors_doc)]
     pub fn convert_container(
         bollard_container: bollard::models::ContainerSummary,
     ) -> DockaResult<Container> {
