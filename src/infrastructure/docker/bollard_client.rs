@@ -16,7 +16,6 @@ use bollard::query_parameters::{
     StartContainerOptions, StartContainerOptionsBuilder, StopContainerOptions,
     StopContainerOptionsBuilder,
 };
-use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{debug, error, info, warn};
 
@@ -567,15 +566,21 @@ impl BollardDockerRepository {
 
         // Build the domain container
         // ドメインコンテナを構築
-        Container::builder()
+        let mut builder = Container::builder()
             .id(container_id.as_str())
             .name(name)
             .image(image)
             .status(status)
             .created_at(created_at)
-            .labels(labels)
-            .command(command.unwrap_or_default())
-            .build()
+            .labels(labels);
+
+        // Only set command if it exists and is not empty
+        // コマンドが存在し、空でない場合のみ設定
+        if let Some(cmd) = command {
+            builder = builder.command(cmd);
+        }
+
+        builder.build()
     }
 }
 
@@ -860,19 +865,12 @@ mod tests {
         // コンテナコマンド処理のテスト
         let test_cases = vec![
             (
-                Some(vec![
-                    "nginx".to_string(),
-                    "-g".to_string(),
-                    "daemon off;".to_string(),
-                ]),
+                Some("nginx -g daemon off;".to_string()),
                 Some("nginx -g daemon off;".to_string()),
             ),
-            (
-                Some(vec!["/bin/bash".to_string()]),
-                Some("/bin/bash".to_string()),
-            ),
-            (Some(vec![]), None), // Empty command
-            (None, None),         // No command
+            (Some("/bin/bash".to_string()), Some("/bin/bash".to_string())),
+            (Some("".to_string()), None), // 空文字列は除外
+            (None, None),                 // コマンドなし
         ];
 
         for (docker_command, expected_command) in test_cases {
@@ -986,7 +984,7 @@ mod tests {
         // 大きなラベルセットでの変換パフォーマンステスト
         let mut large_labels = HashMap::new();
         for i in 0..1000 {
-            large_labels.insert(format!("label_{}", i), Some(format!("value_{}", i)));
+            large_labels.insert(format!("label_{}", i), format!("value_{}", i));
         }
 
         let bollard_container = ContainerSummary {
