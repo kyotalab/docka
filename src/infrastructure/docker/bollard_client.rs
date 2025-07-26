@@ -155,6 +155,7 @@ impl BollardDockerRepository {
     /// このメソッドはリポジトリインターフェースでカバーされていない
     /// 操作のため、基礎となるbollardクライアントへのアクセスを提供します。
     #[must_use]
+    #[allow(clippy::missing_const_for_fn)] // Arc<T> deref is not const-compatible
     pub fn client(&self) -> &Docker {
         &self.client
     }
