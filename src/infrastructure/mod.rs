@@ -86,13 +86,13 @@ pub mod docker;
 // よく使用される型を便利なアクセスのため再エクスポート
 
 /// Bollard-based Docker repository implementation
-/// BollardベースのDockerリポジトリ実装
+/// `Bollard`ベースの`Docker`リポジトリ実装
 ///
 /// This is the primary Docker API client implementation for the application.
-/// It provides full DockerRepository trait implementation with async support.
+/// It provides full `DockerRepository` trait implementation with async support.
 ///
-/// これはアプリケーションのプライマリDocker APIクライアント実装です。
-/// 非同期サポート付きの完全なDockerRepository trait実装を提供します。
+/// これはアプリケーションのプライマリ`Docker` `API`クライアント実装です。
+/// 非同期サポート付きの完全な`DockerRepository` `trait`実装を提供します。
 ///
 /// # Examples
 ///

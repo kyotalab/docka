@@ -19,24 +19,24 @@ use bollard::query_parameters::{
 use std::sync::Arc;
 use tracing::{debug, error, info, warn};
 
-/// Bollard-based implementation of DockerRepository
-/// DockerRepositoryのBollardベース実装
+/// Bollard-based implementation of `DockerRepository`
+/// `DockerRepository`の`Bollard`ベース実装
 ///
 /// This implementation provides concrete Docker API operations using the bollard crate,
 /// which is the official Rust Docker SDK. It handles all Docker daemon communication
 /// and converts between bollard types and our domain entities.
 ///
-/// このimplementationはbollardクレートを使用した具体的なDocker API操作を提供します。
-/// bollardは公式のRust Docker SDKです。全てのDocker daemon通信を処理し、
-/// bollard型と我々のドメインエンティティ間の変換を行います。
+/// この実装は`bollard`クレートを使用した具体的な`Docker` `API`操作を提供します。
+/// `bollard`は公式の`Rust` `Docker` `SDK`です。全ての`Docker` `daemon`通信を処理し、
+/// `bollard`型と我々のドメインエンティティ間の変換を行います。
 ///
 /// # Design Principles
 ///
-/// - **Error Conversion**: All bollard errors are converted to DockaError
-/// - **Type Safety**: Strong typing with ContainerId and domain entities
+/// - **Error Conversion**: All bollard errors are converted to `DockaError`
+/// - **Type Safety**: Strong typing with `ContainerId` and domain entities
 /// - **Async Operations**: Non-blocking operations for UI responsiveness
-/// - **Resource Management**: Efficient connection management with Arc
-/// - **Modern API**: Uses latest bollard OpenAPI generated types
+/// - **Resource Management**: Efficient connection management with `Arc`
+/// - **Modern API**: Uses latest bollard `OpenAPI` generated types
 ///
 /// # Thread Safety
 ///
@@ -65,18 +65,18 @@ pub struct BollardDockerRepository {
 }
 
 impl BollardDockerRepository {
-    /// Create a new BollardDockerRepository with default connection
-    /// デフォルト接続で新しいBollardDockerRepositoryを作成
+    /// Create a new `BollardDockerRepository` with default connection
+    /// `デフォルト接続で新しいBollardDockerRepositoryを作成`
     ///
     /// This method attempts to connect to Docker daemon using default settings:
     /// - Unix socket on Linux/macOS
     /// - Named pipe on Windows
-    /// - Environment variables (DOCKER_HOST, etc.) if available
+    /// - Environment variables (`DOCKER_HOST`, etc.) if available
     ///
     /// このメソッドはデフォルト設定でDocker daemonへの接続を試行します：
     /// - Linux/macOSではUnixソケット
-    /// - WindowsではNamed pipe
-    /// - 利用可能な場合は環境変数（DOCKER_HOST等）
+    /// - `WindowsではNamed` pipe
+    /// - `利用可能な場合は環境変数（DOCKER_HOST等`）
     ///
     /// # Errors
     /// * `DockaError::DockerDaemonNotRunning` - When Docker daemon is not accessible
@@ -109,14 +109,15 @@ impl BollardDockerRepository {
         Ok(repo)
     }
 
-    /// Create BollardDockerRepository with custom Docker client
-    /// カスタムDockerクライアントでBollardDockerRepositoryを作成
+    /// Create `BollardDockerRepository` with custom Docker client
+    /// `カスタムDockerクライアントでBollardDockerRepositoryを作成`
     ///
     /// This method allows dependency injection for testing and custom configurations.
     /// このメソッドはテストとカスタム設定のための依存性注入を可能にします。
     ///
     /// # Arguments
     /// * `docker` - Pre-configured Docker client
+    #[must_use]
     pub fn with_client(docker: Docker) -> Self {
         Self {
             client: Arc::new(docker),
@@ -160,20 +161,20 @@ impl BollardDockerRepository {
         &self.client
     }
 
-    /// Create ListContainersOptions using the new Builder API
-    /// 新しいBuilder APIを使用してListContainersOptionsを作成
+    /// Create `ListContainersOptions` using the new Builder API
+    /// 新しいBuilder `APIを使用してListContainersOptionsを作成`
     ///
-    /// This helper method encapsulates the creation of ListContainersOptions
-    /// using the new OpenAPI generated Builder pattern.
+    /// This helper method encapsulates the creation of `ListContainersOptions`
+    /// using the new `OpenAPI` generated Builder pattern.
     ///
-    /// このヘルパーメソッドは新しいOpenAPI生成Builderパターンを使用した
-    /// ListContainersOptionsの作成をカプセル化します。
+    /// `このヘルパーメソッドは新しいOpenAPI生成Builderパターンを使用した`
+    /// `ListContainersOptionsの作成をカプセル化します。`
     fn create_list_options(all: bool) -> ListContainersOptions {
         ListContainersOptionsBuilder::default().all(all).build()
     }
 
-    /// Create StartContainerOptions using the new Builder API
-    /// 新しいBuilder APIを使用してStartContainerOptionsを作成
+    /// Create `StartContainerOptions` using the new Builder API
+    /// 新しいBuilder `APIを使用してStartContainerOptionsを作成`
     ///
     /// For basic container start operations, we typically don't need additional options.
     /// This helper provides a clean way to create default options.
@@ -184,19 +185,19 @@ impl BollardDockerRepository {
         StartContainerOptionsBuilder::default().build()
     }
 
-    /// Create StopContainerOptions with timeout using the new Builder API
-    /// 新しいBuilder APIを使用してタイムアウト付きStopContainerOptionsを作成
+    /// Create `StopContainerOptions` with timeout using the new Builder API
+    /// 新しいBuilder `APIを使用してタイムアウト付きStopContainerOptionsを作成`
     ///
     /// # Arguments
     /// * `timeout_seconds` - Timeout in seconds before force killing the container
     fn create_stop_options(timeout_seconds: u32) -> StopContainerOptions {
         StopContainerOptionsBuilder::default()
-            .t((timeout_seconds as i64).try_into().unwrap())
+            .t(i64::from(timeout_seconds).try_into().unwrap())
             .build()
     }
 
-    /// Create RestartContainerOptions using the new Builder API
-    /// 新しいBuilder APIを使用してRestartContainerOptionsを作成
+    /// Create `RestartContainerOptions` using the new Builder API
+    /// 新しいBuilder `APIを使用してRestartContainerOptionsを作成`
     ///
     /// # Arguments
     /// * `timeout_seconds` - Timeout in seconds before force killing the container during restart
@@ -210,14 +211,14 @@ impl BollardDockerRepository {
         let mut builder = RestartContainerOptionsBuilder::default();
 
         if let Some(timeout) = timeout_seconds {
-            builder = builder.t((timeout as i64).try_into().unwrap());
+            builder = builder.t(i64::from(timeout).try_into().unwrap());
         }
 
         builder.build()
     }
 
-    /// Create RemoveContainerOptions using the new Builder API
-    /// 新しいBuilder APIを使用してRemoveContainerOptionsを作成
+    /// Create `RemoveContainerOptions` using the new Builder API
+    /// 新しいBuilder `APIを使用してRemoveContainerOptionsを作成`
     ///
     /// # Arguments
     /// * `force` - Whether to force remove running containers
@@ -230,7 +231,7 @@ impl BollardDockerRepository {
             // .v(remove_volumes)
             .build()
     }
-    /// Create ListContainersOptions with filters (for Phase 2)
+    /// Create `ListContainersOptions` with filters (for Phase 2)
     /// フィルタ付きListContainersOptionsを作成（Phase 2用）
     ///
     /// This method will be enhanced in Phase 2 to support server-side filtering
@@ -515,7 +516,7 @@ impl BollardDockerRepository {
     /// This method handles the complex conversion between bollard's API types
     /// and our strongly-typed domain entities.
     ///
-    /// このメソッドはbollardのAPI型と我々の強く型付けされた
+    /// `このメソッドはbollardのAPI型と我々の強く型付けされた`
     /// ドメインエンティティ間の複雑な変換を処理します。
     fn convert_container(
         bollard_container: bollard::models::ContainerSummary,
@@ -549,17 +550,15 @@ impl BollardDockerRepository {
         let status = bollard_container
             .status
             .as_deref()
-            .map(ContainerStatus::from_docker_string)
-            .unwrap_or(ContainerStatus::Dead);
+            .map_or(ContainerStatus::Dead, ContainerStatus::from_docker_string);
 
         // Convert creation timestamp
         // 作成タイムスタンプを変換
         let created_at = bollard_container
             .created
-            .map(|timestamp| {
+            .map_or_else(chrono::Utc::now, |timestamp| {
                 chrono::DateTime::from_timestamp(timestamp, 0).unwrap_or_else(chrono::Utc::now)
-            })
-            .unwrap_or_else(chrono::Utc::now);
+            });
 
         // Convert labels (bollard now uses HashMap<String, String> directly)
         // ラベルを変換（bollardは現在HashMap<String, String>を直接使用）

@@ -41,14 +41,24 @@
 //! ```
 
 /// Bollard-based Docker API client implementation
-/// BollardベースのDocker APIクライアント実装
+/// `Bollard`ベースの`Docker` `API`クライアント実装
 ///
-/// This module provides the main implementation of the DockerRepository trait
+/// This module provides the main implementation of the `DockerRepository` trait
 /// using the bollard crate for Docker API communication.
 ///
-/// このモジュールはDocker API通信にbollardクレートを使用した
-/// DockerRepository traitのメイン実装を提供します。
+/// このモジュールは`Docker` `API`通信に`bollard`クレートを使用した
+/// `DockerRepository` `trait`のメイン実装を提供します。
 pub mod bollard_client;
+
+/// Bollard-based implementation of `DockerRepository` trait
+/// `DockerRepository` `trait`の`Bollard`ベース実装
+///
+/// This is the primary implementation for Docker API operations in Phase 1.
+/// It provides full async support and comprehensive error handling.
+///
+/// これは`Phase` 1での`Docker` `API`操作のプライマリ実装です。
+/// 完全な非同期サポートと包括的なエラーハンドリングを提供します。
+pub use bollard_client::BollardDockerRepository;
 
 // Phase 1.2 で実装予定
 // To be implemented in Phase 1.2
@@ -75,19 +85,6 @@ pub mod bollard_client;
 // /// このモジュールはDocker API操作のための特殊化されたエラーハンドリング、
 // /// リトライロジックと接続管理を含みます。
 // pub mod error_handler;
-
-// Re-export for convenient access
-// 便利なアクセスのため再エクスポート
-
-/// Bollard-based implementation of DockerRepository trait
-/// DockerRepository traitのBollardベース実装
-///
-/// This is the primary implementation for Docker API operations in Phase 1.
-/// It provides full async support and comprehensive error handling.
-///
-/// これはPhase 1でのDocker API操作のプライマリ実装です。
-/// 完全な非同期サポートと包括的なエラーハンドリングを提供します。
-pub use bollard_client::BollardDockerRepository;
 
 // Phase 1.2 で有効化予定
 // To be enabled in Phase 1.2

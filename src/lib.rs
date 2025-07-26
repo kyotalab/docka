@@ -167,17 +167,11 @@ pub use domain::{Container, ContainerBuilder, ContainerFilter, ContainerId, Cont
 pub use domain::{Image, ImageBuilder};
 
 /// Repository trait for Docker API operations.
-/// Docker API操作用リポジトリtrait。
+/// `Docker` `API`操作用リポジトリ`trait`。
 pub use domain::DockerRepository;
 
 /// Bollard-based Docker repository implementation.
-/// BollardベースのDockerリポジトリ実装。
-///
-/// This is the primary Docker API client implementation providing
-/// full async support and comprehensive error handling.
-///
-/// これは完全な非同期サポートと包括的なエラーハンドリングを提供する
-/// プライマリDocker APIクライアント実装です。
+/// `Bollard`ベースの`Docker`リポジトリ実装。
 pub use infrastructure::BollardDockerRepository;
 
 // Test utilities (only available in test builds)
