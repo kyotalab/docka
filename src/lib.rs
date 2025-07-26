@@ -33,18 +33,19 @@
 //! - ✅ Error handling system
 //! - ✅ Domain entities and value objects
 //! - ✅ Repository trait definitions
-//! - 🚧 Docker API integration
+//! - ✅ Docker API integration (Bollard-based)
 //! - 🚧 Basic TUI components
 //!
 //! ## Usage
 //!
 //! ```rust,no_run
-//! use docka::{DockaResult, DockaError, DockerRepository};
+//! use docka::{DockaResult, DockaError, DockerRepository, BollardDockerRepository};
 //! use docka::domain::{Container, ContainerStatus, ContainerId};
 //!
-//! async fn example_docker_operations<R: DockerRepository>(
-//!     repo: &R
-//! ) -> DockaResult<()> {
+//! async fn example_docker_operations() -> DockaResult<()> {
+//!     // Create Docker repository
+//!     let repo = BollardDockerRepository::new().await?;
+//!
 //!     // List all containers
 //!     let containers = repo.list_containers().await?;
 //!     println!("Found {} containers", containers.len());
@@ -96,6 +97,15 @@ pub mod error;
 /// コアドメインモデルとビジネスルールを定義します。
 pub mod domain;
 
+/// Infrastructure layer for external integrations.
+///
+/// This layer handles Docker API communication, caching, logging,
+/// and other external system integrations.
+///
+/// 外部統合用インフラ層。
+/// Docker API通信、キャッシング、ログ、その他外部システム統合を処理します.
+pub mod infrastructure;
+
 // Phase 1 implementation modules - uncomment as implemented
 // Phase 1実装モジュール - 実装時にコメントアウト解除
 
@@ -107,15 +117,6 @@ pub mod domain;
 // /// ユースケースとサービスを含むアプリケーション層。
 // /// ドメイン操作を調整し、ドメイン層とインフラ層間の連携を担当します。
 // pub mod app;
-
-// /// Infrastructure layer for external integrations.
-// ///
-// /// This layer handles Docker API communication, caching, logging,
-// /// and other external system integrations.
-// ///
-// /// 外部統合用インフラ層。
-// /// Docker API通信、キャッシング、ログ、その他外部システム統合を処理します。
-// pub mod infrastructure;
 
 // /// User interface layer for terminal-based interaction.
 // ///
@@ -166,8 +167,18 @@ pub use domain::{Container, ContainerBuilder, ContainerFilter, ContainerId, Cont
 pub use domain::{Image, ImageBuilder};
 
 /// Repository trait for Docker API operations.
-/// Docker `API操作用リポジトリtrait`。
+/// Docker API操作用リポジトリtrait。
 pub use domain::DockerRepository;
+
+/// Bollard-based Docker repository implementation.
+/// BollardベースのDockerリポジトリ実装。
+///
+/// This is the primary Docker API client implementation providing
+/// full async support and comprehensive error handling.
+///
+/// これは完全な非同期サポートと包括的なエラーハンドリングを提供する
+/// プライマリDocker APIクライアント実装です。
+pub use infrastructure::BollardDockerRepository;
 
 // Test utilities (only available in test builds)
 // テストユーティリティ（テストビルドでのみ利用可能）
