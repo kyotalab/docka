@@ -346,8 +346,12 @@ impl DockerRepository for BollardDockerRepository {
             )));
         }
 
+        // Use consistent options creation pattern
+        // 一貫性のあるオプション作成パターンを使用
+        let options = Some(Self::create_start_options());
+
         self.client
-            .start_container(id.as_str(), None::<StartContainerOptions>)
+            .start_container(id.as_str(), options)
             .await
             .map_err(|e| {
                 error!("Failed to start container {}: {}", id, e);
