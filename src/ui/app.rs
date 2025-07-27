@@ -4,7 +4,7 @@
 
 use crate::domain::entities::Container;
 use crate::domain::repositories::DockerRepository;
-use crate::error::{DockaError, DockaResult};
+use crate::error::DockaResult;
 use std::sync::Arc;
 
 /// View state enum representing current application UI state
@@ -74,9 +74,9 @@ pub struct App {
     /// API操作用Dockerリポジトリ
     docker_repository: Arc<dyn DockerRepository>,
 
-    /// Last error encountered (for error display)
-    /// 発生した最後のエラー（エラー表示用）
-    pub last_error: Option<DockaError>,
+    /// Last error message for display purposes
+    /// 表示用の最後のエラーメッセージ
+    pub last_error: Option<String>,
 }
 
 impl App {
@@ -159,11 +159,13 @@ impl App {
                     self.selected_index = 0;
                 }
                 self.view_state = ViewState::ContainerList;
+                self.last_error = None; // Clear previous error
                 Ok(())
             }
             Err(error) => {
-                self.view_state = ViewState::Error(error.to_string());
-                self.last_error = Some(error.clone());
+                let error_message = error.to_string();
+                self.view_state = ViewState::Error(error_message.clone());
+                self.last_error = Some(error_message);
                 Err(error)
             }
         }

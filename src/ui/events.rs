@@ -2,7 +2,7 @@
 // Event handling implementation for TUI application
 // TUIアプリケーション用イベント処理実装
 
-use crate::error::{DockaError, DockaResult};
+use crate::error::DockaResult;
 use crate::ui::app::App;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -346,6 +346,7 @@ impl EventStats {
 mod tests {
     use super::*;
     use crate::domain::MockDockerRepository;
+    use crate::error::{DockaError, DockaResult};
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use std::sync::Arc;
 

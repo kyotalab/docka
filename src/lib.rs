@@ -34,7 +34,7 @@
 //! - ✅ Domain entities and value objects
 //! - ✅ Repository trait definitions
 //! - ✅ Docker API integration (Bollard-based)
-//! - 🚧 Basic TUI components
+//! - 🚧 Basic TUI components (Week 2)
 //!
 //! ## Usage
 //!
@@ -106,6 +106,16 @@ pub mod domain;
 /// Docker API通信、キャッシング、ログ、その他外部システム統合を処理します.
 pub mod infrastructure;
 
+/// User interface layer for terminal-based interaction.
+///
+/// This layer provides TUI components, event handling, and user interaction
+/// management using the ratatui framework.
+///
+/// ターミナルベース交互作用用ユーザーインターフェース層。
+/// ratatuiフレームワークを使用したTUIコンポーネント、イベント処理、
+/// ユーザー交互作用管理を提供します。
+pub mod ui;
+
 // Phase 1 implementation modules - uncomment as implemented
 // Phase 1実装モジュール - 実装時にコメントアウト解除
 
@@ -117,16 +127,6 @@ pub mod infrastructure;
 // /// ユースケースとサービスを含むアプリケーション層。
 // /// ドメイン操作を調整し、ドメイン層とインフラ層間の連携を担当します。
 // pub mod app;
-
-// /// User interface layer for terminal-based interaction.
-// ///
-// /// This layer provides TUI components, event handling, and user interaction
-// /// management using the ratatui framework.
-// ///
-// /// ターミナルベース交互作用用ユーザーインターフェース層。
-// /// ratatuiフレームワークを使用したTUIコンポーネント、イベント処理、
-// /// ユーザー交互作用管理を提供します。
-// pub mod ui;
 
 // /// Actor system for concurrent task management.
 // ///
