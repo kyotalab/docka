@@ -5,11 +5,11 @@
 //! User interface module providing TUI components and event handling.
 //!
 //! This module contains all TUI-related functionality including application state
-//! management, event processing, widgets, and layout management using the ratatui framework.
+//! management, event processing, widgets, layout management, and styling using the ratatui framework.
 //!
 //! TUIコンポーネントとイベント処理を提供するユーザーインターフェースモジュール。
 //! ratatuiフレームワークを使用したアプリケーション状態管理、イベント処理、
-//! ウィジェット、レイアウト管理を含む全TUI関連機能を含みます。
+//! ウィジェット、レイアウト管理、スタイリングを含む全TUI関連機能を含みます。
 //!
 //! # Architecture
 //!
@@ -20,8 +20,9 @@
 //! ├── widgets/            # UI widgets (Phase 1.2.2)
 //! │   ├── container_list.rs
 //! │   └── status_bar.rs
-//! └── layouts/            # Layout management (Phase 1.2.3)
-//!     └── simple_layout.rs
+//! ├── layouts/            # Layout management (Phase 1.2.3)
+//! │   └── simple_layout.rs
+//! └── styles.rs           # Styling and theming (Phase 1.2.3)
 //! ```
 //!
 //! # Usage
@@ -89,6 +90,16 @@ pub mod layouts;
 /// 再利用可能なTUIウィジェットを含みます。
 pub mod widgets;
 
+/// Styling and theming for consistent UI appearance.
+///
+/// This module provides color schemes, border styles, and theme management
+/// for maintaining visual consistency across all UI components.
+///
+/// 一貫したUI外観のためのスタイリングとテーマ設定。
+/// 全UIコンポーネント間での視覚的一貫性を維持するための
+/// カラースキーム、ボーダースタイル、テーマ管理を提供します。
+pub mod styles;
+
 // Re-export commonly used types
 // よく使用される型を再エクスポート
 
@@ -107,3 +118,7 @@ pub use layouts::{LayoutAreas, SimpleLayout};
 /// Widget types and functions.
 /// ウィジェット型と関数。
 pub use widgets::StatusBar;
+
+/// Styling and theming types.
+/// スタイリングとテーマ設定型。
+pub use styles::{AppStyles, BlockStyles, Theme};
