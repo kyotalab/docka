@@ -72,7 +72,8 @@ impl AppStyles {
     ///
     /// # Returns / 戻り値
     /// * `AppStyles` - Configured style instance / 設定されたスタイルインスタンス
-    #[must_use] pub const fn new(primary: Color, success: Color, warning: Color, error: Color) -> Self {
+    #[must_use]
+    pub const fn new(primary: Color, success: Color, warning: Color, error: Color) -> Self {
         Self {
             primary,
             success,
@@ -89,7 +90,8 @@ impl AppStyles {
     ///
     /// # Returns / 戻り値
     /// * `Style` - Loading state style / ローディング状態スタイル
-    #[must_use] pub fn loading_style(&self) -> Style {
+    #[must_use]
+    pub fn loading_style(&self) -> Style {
         Style::default()
             .fg(Color::Black)
             .bg(self.warning)
@@ -101,7 +103,8 @@ impl AppStyles {
     ///
     /// # Returns / 戻り値
     /// * `Style` - Error state style / エラー状態スタイル
-    #[must_use] pub fn error_style(&self) -> Style {
+    #[must_use]
+    pub fn error_style(&self) -> Style {
         Style::default()
             .fg(Color::White)
             .bg(self.error)
@@ -113,7 +116,8 @@ impl AppStyles {
     ///
     /// # Returns / 戻り値
     /// * `Style` - Success state style / 成功状態スタイル
-    #[must_use] pub fn success_style(&self) -> Style {
+    #[must_use]
+    pub fn success_style(&self) -> Style {
         Style::default()
             .fg(self.success)
             .add_modifier(Modifier::BOLD)
@@ -124,7 +128,8 @@ impl AppStyles {
     ///
     /// # Returns / 戻り値
     /// * `Style` - Selected item style / 選択項目スタイル
-    #[must_use] pub fn selected_style(&self) -> Style {
+    #[must_use]
+    pub fn selected_style(&self) -> Style {
         Style::default()
             .fg(self.selected_fg)
             .bg(self.selected_bg)
@@ -136,7 +141,8 @@ impl AppStyles {
     ///
     /// # Returns / 戻り値
     /// * `Style` - Normal text style / 通常テキストスタイル
-    #[must_use] pub fn normal_style(&self) -> Style {
+    #[must_use]
+    pub fn normal_style(&self) -> Style {
         Style::default().fg(Color::White)
     }
 
@@ -145,7 +151,8 @@ impl AppStyles {
     ///
     /// # Returns / 戻り値
     /// * `Style` - Muted text style / 抑制テキストスタイル
-    #[must_use] pub fn muted_style(&self) -> Style {
+    #[must_use]
+    pub fn muted_style(&self) -> Style {
         Style::default().fg(self.muted)
     }
 
@@ -154,7 +161,8 @@ impl AppStyles {
     ///
     /// # Returns / 戻り値
     /// * `Style` - Primary accent style / プライマリアクセントスタイル
-    #[must_use] pub fn primary_style(&self) -> Style {
+    #[must_use]
+    pub fn primary_style(&self) -> Style {
         Style::default()
             .fg(self.primary)
             .add_modifier(Modifier::BOLD)
@@ -202,7 +210,8 @@ impl BlockStyles {
     ///
     /// # Returns / 戻り値
     /// * `Block` - Styled block widget / スタイル設定されたブロックウィジェット
-    #[must_use] pub fn normal_block<'a>(&self, title: Option<&'a str>) -> Block<'a> {
+    #[must_use]
+    pub fn normal_block<'a>(&self, title: Option<&'a str>) -> Block<'a> {
         let mut block = Block::default()
             .borders(Borders::ALL)
             .border_type(self.normal_border)
@@ -223,7 +232,8 @@ impl BlockStyles {
     ///
     /// # Returns / 戻り値
     /// * `Block` - Styled active block widget / スタイル設定されたアクティブブロックウィジェット
-    #[must_use] pub fn active_block<'a>(&self, title: Option<&'a str>) -> Block<'a> {
+    #[must_use]
+    pub fn active_block<'a>(&self, title: Option<&'a str>) -> Block<'a> {
         let mut block = Block::default()
             .borders(Borders::ALL)
             .border_type(self.active_border)
@@ -244,7 +254,8 @@ impl BlockStyles {
     ///
     /// # Returns / 戻り値
     /// * `Block` - Styled status block widget / スタイル設定されたステータスブロックウィジェット
-    #[must_use] pub fn status_block(&self, state_style: Style) -> Block {
+    #[must_use]
+    pub fn status_block(&self, state_style: Style) -> Block {
         Block::default()
             .borders(Borders::ALL)
             .border_type(self.normal_border)
@@ -254,8 +265,7 @@ impl BlockStyles {
 
 /// Theme manager for coordinating styles across the application
 /// アプリケーション全体でスタイルを調整するテーママネージャー
-#[derive(Debug, Clone)]
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Theme {
     /// Color and style configuration
     /// 色とスタイル設定
@@ -265,7 +275,6 @@ pub struct Theme {
     /// ブロックとボーダー設定
     pub blocks: BlockStyles,
 }
-
 
 impl Theme {
     /// Create a new theme with custom configurations
@@ -277,7 +286,8 @@ impl Theme {
     ///
     /// # Returns / 戻り値
     /// * `Theme` - Configured theme instance / 設定されたテーマインスタンス
-    #[must_use] pub const fn new(styles: AppStyles, blocks: BlockStyles) -> Self {
+    #[must_use]
+    pub const fn new(styles: AppStyles, blocks: BlockStyles) -> Self {
         Self { styles, blocks }
     }
 
@@ -286,7 +296,8 @@ impl Theme {
     ///
     /// # Returns / 戻り値
     /// * `Theme` - Dark theme configuration / ダークテーマ設定
-    #[must_use] pub fn dark() -> Self {
+    #[must_use]
+    pub fn dark() -> Self {
         let styles = AppStyles {
             primary: Color::Cyan,
             success: Color::Green,
@@ -312,7 +323,8 @@ impl Theme {
     ///
     /// # Returns / 戻り値
     /// * `Theme` - Light theme configuration / ライトテーマ設定
-    #[must_use] pub fn light() -> Self {
+    #[must_use]
+    pub fn light() -> Self {
         let styles = AppStyles {
             primary: Color::Blue,
             success: Color::Green,
