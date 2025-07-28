@@ -69,6 +69,16 @@ pub mod app;
 /// アプリケーション状態更新を処理します。
 pub mod events;
 
+/// Layout management for UI components.
+///
+/// This module provides layout managers for organizing UI components
+/// and handling responsive design for different terminal sizes.
+///
+/// UIコンポーネント用レイアウト管理。
+/// UIコンポーネントの整理と異なるターミナルサイズでの
+/// レスポンシブデザイン処理のためのレイアウトマネージャーを提供します。
+pub mod layouts;
+
 // Phase 1.2.2 で実装予定
 // To be implemented in Phase 1.2.2
 
@@ -82,19 +92,6 @@ pub mod events;
 // /// 再利用可能なTUIウィジェットを含みます。
 // pub mod widgets;
 
-// Phase 1.2.3 で実装予定
-// To be implemented in Phase 1.2.3
-
-// /// Layout management for UI components.
-// ///
-// /// This module provides layout managers for organizing UI components
-// /// and handling responsive design for different terminal sizes.
-// ///
-// /// UIコンポーネント用レイアウト管理。
-// /// UIコンポーネントの整理と異なるターミナルサイズでの
-// /// レスポンシブデザイン処理のためのレイアウトマネージャーを提供します。
-// pub mod layouts;
-
 // Re-export commonly used types
 // よく使用される型を再エクスポート
 
@@ -105,3 +102,7 @@ pub use app::{App, ViewState};
 /// Application event types and processing functions.
 /// アプリケーションイベント型と処理関数。
 pub use events::{AppEvent, EventStats, handle_key_event, process_app_event, validate_key_input};
+
+/// Layout management types and functions.
+/// レイアウト管理型と関数。
+pub use layouts::{LayoutAreas, SimpleLayout};
