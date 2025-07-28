@@ -177,7 +177,10 @@ pub use infrastructure::BollardDockerRepository;
 
 /// UI layer types and components.
 /// UI層の型とコンポーネント。
-pub use ui::{App, AppEvent, EventStats, LayoutAreas, SimpleLayout, StatusBar, ViewState};
+pub use ui::{
+    App, AppEvent, AppStyles, BlockStyles, EventStats, LayoutAreas, SimpleLayout, StatusBar, Theme,
+    ViewState,
+};
 
 // Test utilities (only available in test builds)
 // テストユーティリティ（テストビルドでのみ利用可能）
