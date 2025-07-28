@@ -599,8 +599,8 @@ mod tests {
     use chrono::Utc;
     use std::collections::HashMap;
 
-    /// Create a test ContainerSummary for testing conversion logic
-    /// 変換ロジックテスト用のテストContainerSummaryを作成
+    /// Create a test `ContainerSummary` for testing conversion logic
+    /// `変換ロジックテスト用のテストContainerSummaryを作成`
     fn create_test_container_summary(
         id: &str,
         name: &str,
@@ -701,7 +701,7 @@ mod tests {
         assert_eq!(container.image, "unknown"); // Default fallback
         assert_eq!(container.status, ContainerStatus::Dead); // Default fallback
         assert!(container.labels.is_empty());
-        assert!(container.command.as_ref().map_or(true, |c| c.is_empty())); // Should be empty or None
+        assert!(container.command.as_ref().is_none_or(std::string::String::is_empty)); // Should be empty or None
     }
 
     #[test]
@@ -744,7 +744,7 @@ mod tests {
         if let Err(DockaError::InvalidInput { message }) = result {
             assert!(message.contains("invalid characters"));
         } else {
-            panic!("Expected InvalidInput error for invalid ID: {:?}", result);
+            panic!("Expected InvalidInput error for invalid ID: {result:?}");
         }
     }
 
@@ -773,15 +773,13 @@ mod tests {
             let result = BollardDockerRepository::convert_container(bollard_container);
             assert!(
                 result.is_ok(),
-                "Status conversion should succeed for: {}",
-                docker_status
+                "Status conversion should succeed for: {docker_status}"
             );
 
             let container = result.unwrap();
             assert_eq!(
                 container.status, expected_status,
-                "Status mismatch for Docker status: {}",
-                docker_status
+                "Status mismatch for Docker status: {docker_status}"
             );
         }
     }
@@ -874,7 +872,7 @@ mod tests {
                 Some("nginx -g daemon off;".to_string()),
             ),
             (Some("/bin/bash".to_string()), Some("/bin/bash".to_string())),
-            (Some("".to_string()), None), // 空文字列は除外
+            (Some(String::new()), None), // 空文字列は除外
             (None, None),                 // コマンドなし
         ];
 
@@ -894,8 +892,7 @@ mod tests {
             let container = result.unwrap();
             assert_eq!(
                 container.command, expected_command,
-                "Command mismatch for Docker command: {:?}",
-                docker_command
+                "Command mismatch for Docker command: {docker_command:?}"
             );
         }
     }
@@ -966,8 +963,8 @@ mod tests {
     // Integration test helper functions
     // 統合テスト用ヘルパー関数
 
-    /// Create a test BollardDockerRepository with mock client for integration tests
-    /// 統合テスト用にモッククライアントを持つテストBollardDockerRepositoryを作成
+    /// Create a test `BollardDockerRepository` with mock client for integration tests
+    /// `統合テスト用にモッククライアントを持つテストBollardDockerRepositoryを作成`
     ///
     /// Note: This is a placeholder for when we implement mock Docker client.
     /// For now, real integration tests require actual Docker daemon.
@@ -989,7 +986,7 @@ mod tests {
         // 大きなラベルセットでの変換パフォーマンステスト
         let mut large_labels = HashMap::new();
         for i in 0..1000 {
-            large_labels.insert(format!("label_{}", i), format!("value_{}", i));
+            large_labels.insert(format!("label_{i}"), format!("value_{i}"));
         }
 
         let bollard_container = ContainerSummary {
@@ -1029,8 +1026,8 @@ mod tests {
         let test_containers: Vec<_> = (0..10)
             .map(|i| {
                 create_test_container_summary(
-                    &format!("thread-test-{}", i),
-                    &format!("container-{}", i),
+                    &format!("thread-test-{i}"),
+                    &format!("container-{i}"),
                     "nginx:latest",
                     "running",
                 )
@@ -1055,9 +1052,7 @@ mod tests {
                 for (idx, result) in results.iter().enumerate() {
                     assert!(
                         result.is_ok(),
-                        "Thread {} conversion {} should succeed",
-                        i,
-                        idx
+                        "Thread {i} conversion {idx} should succeed"
                     );
                 }
 

@@ -8,8 +8,8 @@ use crate::error::DockaResult;
 use std::sync::Arc;
 
 /// View state enum representing current application UI state
-/// 現在のアプリケーションUI状態を表すViewState列挙型
-#[derive(Debug, Clone, PartialEq)]
+/// `現在のアプリケーションUI状態を表すViewState列挙型`
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ViewState {
     /// Container list view - normal operation state
     /// コンテナリストビュー - 通常操作状態
@@ -71,7 +71,7 @@ pub struct App {
     pub view_state: ViewState,
 
     /// Docker repository for API operations
-    /// API操作用Dockerリポジトリ
+    /// `API操作用Dockerリポジトリ`
     docker_repository: Arc<dyn DockerRepository>,
 
     /// Last error message for display purposes
@@ -81,7 +81,7 @@ pub struct App {
 
 impl App {
     /// Create new App instance with Docker repository
-    /// Dockerリポジトリを使用して新しいAppインスタンスを作成
+    /// `Dockerリポジトリを使用して新しいAppインスタンスを作成`
     ///
     /// # Arguments
     /// * `docker_repository` - Docker API repository implementation
@@ -280,7 +280,7 @@ impl App {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn selected_container(&self) -> Option<&Container> {
+    #[must_use] pub fn selected_container(&self) -> Option<&Container> {
         self.containers.get(self.selected_index)
     }
 
@@ -290,16 +290,16 @@ impl App {
     /// # Returns
     /// * `true` - Application should continue running
     /// * `false` - Application should quit
-    pub fn is_running(&self) -> bool {
+    #[must_use] pub const fn is_running(&self) -> bool {
         self.running && !self.should_quit
     }
 
     /// Request application quit
     /// アプリケーション終了を要求
     ///
-    /// This sets the should_quit flag for graceful shutdown.
-    /// これはグレースフルシャットダウンのためのshould_quitフラグを設定します。
-    pub fn quit(&mut self) {
+    /// This sets the `should_quit` flag for graceful shutdown.
+    /// `これはグレースフルシャットダウンのためのshould_quitフラグを設定します`。
+    pub const fn quit(&mut self) {
         self.should_quit = true;
     }
 
@@ -308,7 +308,7 @@ impl App {
     ///
     /// This immediately stops the application by setting running to false.
     /// これはrunningをfalseに設定してアプリケーションを即座に停止します。
-    pub fn force_quit(&mut self) {
+    pub const fn force_quit(&mut self) {
         self.running = false;
         self.should_quit = true;
     }

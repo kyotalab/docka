@@ -135,13 +135,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn setup_terminal() -> DockaResult<Terminal<CrosstermBackend<Stdout>>> {
     // Enable raw mode for direct key input
     // 直接キー入力用に生モードを有効化
-    enable_raw_mode().map_err(|e| DockaError::Io(e))?;
+    enable_raw_mode().map_err(DockaError::Io)?;
 
     let mut stdout = io::stdout();
 
     // Enter alternate screen and enable mouse capture
     // 代替画面に入りマウスキャプチャを有効化
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture).map_err(|e| DockaError::Io(e))?;
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture).map_err(DockaError::Io)?;
 
     // Create terminal backend
     // ターミナルバックエンドを作成
@@ -171,12 +171,12 @@ fn setup_terminal() -> DockaResult<Terminal<CrosstermBackend<Stdout>>> {
 fn cleanup_terminal<B: Backend>(terminal: &mut Terminal<B>) -> DockaResult<()> {
     // Disable raw mode
     // 生モードを無効化
-    disable_raw_mode().map_err(|e| DockaError::Io(e))?;
+    disable_raw_mode().map_err(DockaError::Io)?;
 
     // Leave alternate screen and disable mouse capture using stdout directly
     // stdoutを直接使用して代替画面を離れマウスキャプチャを無効化
     execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture)
-        .map_err(|e| DockaError::Io(e))?;
+        .map_err(DockaError::Io)?;
 
     // Show cursor
     // カーソルを表示
@@ -235,7 +235,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Docka
     while app.is_running() {
         // Handle events with timeout
         // タイムアウト付きイベント処理
-        if event::poll(EVENT_POLL_INTERVAL).map_err(|e| DockaError::Io(e))? {
+        if event::poll(EVENT_POLL_INTERVAL).map_err(DockaError::Io)? {
             if let Ok(event) = event::read() {
                 if let Event::Key(key_event) = event {
                     // Validate and process key input

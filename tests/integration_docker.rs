@@ -744,7 +744,7 @@ mod unit_tests {
         assert_eq!(container.image, "unknown"); // Default fallback
         assert_eq!(container.status, ContainerStatus::Dead); // Default fallback
         assert!(container.labels.is_empty());
-        assert!(container.command.as_ref().map_or(true, |c| c.is_empty())); // Should be empty or None
+        assert!(container.command.as_ref().is_none_or(|c| c.is_empty())); // Should be empty or None
     }
 
     #[test]

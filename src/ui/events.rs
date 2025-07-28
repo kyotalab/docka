@@ -14,7 +14,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 ///
 /// この列挙型はアプリケーションで処理可能な全ユーザー交互作用を定義し、
 /// 生のキーボード入力に対するクリーンな抽象化を提供します。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AppEvent {
     /// Normal quit request (q, Esc)
     /// 通常の終了要求 (q, Esc)
@@ -45,8 +45,8 @@ pub enum AppEvent {
     Unknown,
 }
 
-/// Convert KeyEvent to AppEvent based on key bindings
-/// キーバインドに基づいてKeyEventをAppEventに変換
+/// Convert `KeyEvent` to `AppEvent` based on key bindings
+/// `キーバインドに基づいてKeyEventをAppEventに変換`
 ///
 /// This function implements vim-style key bindings with standard navigation keys.
 /// It provides a consistent mapping from raw keyboard input to application events.
@@ -83,7 +83,7 @@ pub enum AppEvent {
 /// let key_force_quit = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
 /// assert_eq!(handle_key_event(key_force_quit), AppEvent::ForceQuit);
 /// ```
-pub fn handle_key_event(key_event: KeyEvent) -> AppEvent {
+#[must_use] pub const fn handle_key_event(key_event: KeyEvent) -> AppEvent {
     match key_event.code {
         // Navigation - vim-style bindings
         // ナビゲーション - vimスタイルバインド
@@ -225,7 +225,7 @@ pub async fn process_app_event(app: &mut App, event: AppEvent) -> DockaResult<()
 /// let function_key = KeyEvent::new(KeyCode::F(1), KeyModifiers::NONE);
 /// assert!(validate_key_input(function_key));
 /// ```
-pub fn validate_key_input(key_event: KeyEvent) -> bool {
+#[must_use] pub const fn validate_key_input(key_event: KeyEvent) -> bool {
     match key_event.code {
         // Allow printable characters
         // 印刷可能文字を許可
@@ -288,7 +288,7 @@ pub struct EventStats {
 impl EventStats {
     /// Create new event statistics tracker
     /// 新しいイベント統計トラッカーを作成
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         Self::default()
     }
 
@@ -298,7 +298,7 @@ impl EventStats {
     /// # Arguments
     /// * `event` - Application event to record
     /// * `result` - Result of event processing
-    pub fn record_event(&mut self, event: &AppEvent, result: &DockaResult<()>) {
+    pub const fn record_event(&mut self, event: &AppEvent, result: &DockaResult<()>) {
         self.total_events += 1;
 
         // Count by event type
@@ -327,7 +327,7 @@ impl EventStats {
 
     /// Get error rate as percentage
     /// エラー率をパーセンテージで取得
-    pub fn error_rate(&self) -> f64 {
+    #[must_use] pub fn error_rate(&self) -> f64 {
         if self.total_events == 0 {
             0.0
         } else {
