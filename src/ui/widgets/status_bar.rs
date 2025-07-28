@@ -129,7 +129,8 @@ impl StatusBar {
     ///
     /// # Returns / 戻り値
     /// * `u16` - Recommended height in rows / 推奨高さ（行数）
-    #[must_use] pub const fn recommended_height() -> u16 {
+    #[must_use]
+    pub const fn recommended_height() -> u16 {
         3 // Border (1) + Content (1) + Border (1) / ボーダー(1) + コンテンツ(1) + ボーダー(1)
     }
 
@@ -141,7 +142,8 @@ impl StatusBar {
     ///
     /// # Returns / 戻り値
     /// * `bool` - True if status bar can be displayed / ステータスバーが表示できる場合true
-    #[must_use] pub const fn can_display(area: Rect) -> bool {
+    #[must_use]
+    pub const fn can_display(area: Rect) -> bool {
         area.height >= Self::recommended_height() && area.width >= 20
     }
 
