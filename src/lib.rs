@@ -34,7 +34,8 @@
 //! - ✅ Domain entities and value objects
 //! - ✅ Repository trait definitions
 //! - ✅ Docker API integration (Bollard-based)
-//! - 🚧 Basic TUI components (Week 2)
+//! - ✅ Basic TUI application structure
+//! - 🚧 TUI layout management (Week 2, Task 1.2.3)
 //!
 //! ## Usage
 //!
@@ -173,6 +174,10 @@ pub use domain::DockerRepository;
 /// Bollard-based Docker repository implementation.
 /// `Bollard`ベースの`Docker`リポジトリ実装。
 pub use infrastructure::BollardDockerRepository;
+
+/// UI layer types and components.
+/// UI層の型とコンポーネント。
+pub use ui::{App, AppEvent, EventStats, LayoutAreas, SimpleLayout, ViewState};
 
 // Test utilities (only available in test builds)
 // テストユーティリティ（テストビルドでのみ利用可能）
