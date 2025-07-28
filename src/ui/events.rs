@@ -83,7 +83,8 @@ pub enum AppEvent {
 /// let key_force_quit = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
 /// assert_eq!(handle_key_event(key_force_quit), AppEvent::ForceQuit);
 /// ```
-#[must_use] pub const fn handle_key_event(key_event: KeyEvent) -> AppEvent {
+#[must_use]
+pub const fn handle_key_event(key_event: KeyEvent) -> AppEvent {
     match key_event.code {
         // Navigation - vim-style bindings
         // ナビゲーション - vimスタイルバインド
@@ -127,6 +128,18 @@ pub enum AppEvent {
 /// # Returns
 /// * `Ok(())` - Event processed successfully
 /// * `Err(DockaError)` - Error occurred during event processing
+///
+/// # Errors
+///
+/// This function will return an error if:
+/// * `AppEvent::Refresh` fails to fetch containers from Docker daemon
+/// * Docker daemon is not accessible during refresh operation
+/// * Network or permission errors occur during Docker API calls
+///
+/// この関数は以下の場合にエラーを返します：
+/// * `AppEvent::Refresh`でDockerデーモンからのコンテナ取得が失敗した場合
+/// * リフレッシュ操作中にDockerデーモンにアクセスできない場合
+/// * Docker API呼び出し中にネットワークまたは権限エラーが発生した場合
 ///
 /// # Examples
 ///
@@ -198,10 +211,10 @@ pub async fn process_app_event(app: &mut App, event: AppEvent) -> DockaResult<()
 /// 制御文字をフィルタリングするためのキー入力検証
 ///
 /// This function validates keyboard input to ensure only appropriate
-/// keys are processed by the application.
+/// keys are processed by the application using an allowlist approach.
 ///
-/// この関数はアプリケーションで適切なキーのみが処理されることを
-/// 保証するためにキーボード入力を検証します。
+/// この関数はアローリスト方式を使用して、アプリケーションで適切なキーのみが
+/// 処理されることを保証するためにキーボード入力を検証します。
 ///
 /// # Arguments
 /// * `key_event` - Keyboard event to validate
@@ -225,31 +238,23 @@ pub async fn process_app_event(app: &mut App, event: AppEvent) -> DockaResult<()
 /// let function_key = KeyEvent::new(KeyCode::F(1), KeyModifiers::NONE);
 /// assert!(validate_key_input(function_key));
 /// ```
-#[must_use] pub const fn validate_key_input(key_event: KeyEvent) -> bool {
+#[must_use]
+pub const fn validate_key_input(key_event: KeyEvent) -> bool {
+    // Allowlist approach - all allowed keys in single match arm
+    // アローリスト方式 - 許可される全キーを単一のmatchアームで処理
     match key_event.code {
-        // Allow printable characters
-        // 印刷可能文字を許可
-        KeyCode::Char(_) => true,
+        // All allowed keys: characters, navigation, actions, function keys, and editing keys
+        // 許可される全キー: 文字、ナビゲーション、アクション、ファンクション、編集キー
+        KeyCode::Char(_)                                        // Printable characters / 印刷可能文字
+        | KeyCode::Up | KeyCode::Down | KeyCode::Left | KeyCode::Right  // Navigation / ナビゲーション
+        | KeyCode::Enter | KeyCode::Esc | KeyCode::Tab | KeyCode::BackTab  // Core actions / コアアクション
+        | KeyCode::F(_)                                         // Function keys / ファンクションキー
+        | KeyCode::Backspace | KeyCode::Delete                  // Basic editing / 基本編集
+        | KeyCode::Home | KeyCode::End                          // Line navigation / 行ナビゲーション
+        | KeyCode::PageUp | KeyCode::PageDown => true,         // Page navigation / ページナビゲーション
 
-        // Allow navigation keys
-        // ナビゲーションキーを許可
-        KeyCode::Up | KeyCode::Down | KeyCode::Left | KeyCode::Right => true,
-
-        // Allow action keys
-        // アクションキーを許可
-        KeyCode::Enter | KeyCode::Esc | KeyCode::Tab | KeyCode::BackTab => true,
-
-        // Allow function keys
-        // ファンクションキーを許可
-        KeyCode::F(_) => true,
-
-        // Allow common editing keys
-        // 一般的な編集キーを許可
-        KeyCode::Backspace | KeyCode::Delete | KeyCode::Home | KeyCode::End => true,
-        KeyCode::PageUp | KeyCode::PageDown => true,
-
-        // Reject other control sequences
-        // その他の制御シーケンスを拒否
+        // Reject all other keys (Insert, Pause, ScrollLock, etc.)
+        // その他全てのキーを拒否 (Insert, Pause, ScrollLock等)
         _ => false,
     }
 }
@@ -288,7 +293,8 @@ pub struct EventStats {
 impl EventStats {
     /// Create new event statistics tracker
     /// 新しいイベント統計トラッカーを作成
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self::default()
     }
 
@@ -307,14 +313,11 @@ impl EventStats {
             AppEvent::SelectNext | AppEvent::SelectPrevious => {
                 self.navigation_events += 1;
             }
-            AppEvent::Enter | AppEvent::Refresh => {
+            AppEvent::Enter | AppEvent::Refresh | AppEvent::Quit | AppEvent::ForceQuit => {
                 self.action_events += 1;
             }
             AppEvent::Unknown => {
                 self.unknown_events += 1;
-            }
-            AppEvent::Quit | AppEvent::ForceQuit => {
-                self.action_events += 1;
             }
         }
 
@@ -327,7 +330,9 @@ impl EventStats {
 
     /// Get error rate as percentage
     /// エラー率をパーセンテージで取得
-    #[must_use] pub fn error_rate(&self) -> f64 {
+    #[allow(clippy::cast_precision_loss)] // Acceptable for statistics calculation
+    #[must_use]
+    pub fn error_rate(&self) -> f64 {
         if self.total_events == 0 {
             0.0
         } else {

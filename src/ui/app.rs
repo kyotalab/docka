@@ -126,6 +126,20 @@ impl App {
     /// * `Ok(())` - Successfully refreshed containers
     /// * `Err(DockaError)` - Failed to fetch containers
     ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// * Docker daemon is not running (`DockerDaemonNotRunning`)
+    /// * Network connection to Docker daemon fails (`DockerApi`)
+    /// * Docker API returns invalid data (`Serialization`)
+    /// * Permission denied when accessing Docker daemon (`PermissionDenied`)
+    ///
+    /// この関数は以下の場合にエラーを返します：
+    /// * Dockerデーモンが動作していない場合
+    /// * Dockerデーモンへのネットワーク接続が失敗した場合
+    /// * Docker APIが無効なデータを返した場合
+    /// * Dockerデーモンへのアクセス権限が拒否された場合
+    ///
     /// # Examples
     ///
     /// ```rust,no_run
@@ -134,7 +148,7 @@ impl App {
     /// # use docka::ui::app::App;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let docker_repo = Arc::new(BollardDockerRepository::new().await?);
+    /// let docker_repo = Arc::new(BollardDockerRepository::new().await?);
     /// let mut app = App::new(docker_repo);
     ///
     /// match app.refresh_containers().await {
@@ -280,7 +294,8 @@ impl App {
     /// # Ok(())
     /// # }
     /// ```
-    #[must_use] pub fn selected_container(&self) -> Option<&Container> {
+    #[must_use]
+    pub fn selected_container(&self) -> Option<&Container> {
         self.containers.get(self.selected_index)
     }
 
@@ -290,7 +305,8 @@ impl App {
     /// # Returns
     /// * `true` - Application should continue running
     /// * `false` - Application should quit
-    #[must_use] pub const fn is_running(&self) -> bool {
+    #[must_use]
+    pub const fn is_running(&self) -> bool {
         self.running && !self.should_quit
     }
 

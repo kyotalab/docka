@@ -175,8 +175,7 @@ fn cleanup_terminal<B: Backend>(terminal: &mut Terminal<B>) -> DockaResult<()> {
 
     // Leave alternate screen and disable mouse capture using stdout directly
     // stdoutを直接使用して代替画面を離れマウスキャプチャを無効化
-    execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture)
-        .map_err(DockaError::Io)?;
+    execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture).map_err(DockaError::Io)?;
 
     // Show cursor
     // カーソルを表示
@@ -236,28 +235,28 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Docka
         // Handle events with timeout
         // タイムアウト付きイベント処理
         if event::poll(EVENT_POLL_INTERVAL).map_err(DockaError::Io)? {
-            if let Ok(event) = event::read() {
-                if let Event::Key(key_event) = event {
-                    // Validate and process key input
-                    // キー入力を検証して処理
-                    if docka::ui::events::validate_key_input(key_event) {
-                        let app_event = handle_key_event(key_event);
-                        let result = process_app_event(app, app_event.clone()).await;
-                        event_stats.record_event(&app_event, &result);
+            // Handle keyboard events only, ignore other event types for Phase 1
+            // Phase 1ではキーボードイベントのみ処理、他のイベントタイプは無視
+            if let Ok(Event::Key(key_event)) = event::read() {
+                // Validate and process key input
+                // キー入力を検証して処理
+                if docka::ui::events::validate_key_input(key_event) {
+                    let app_event = handle_key_event(key_event);
+                    let result = process_app_event(app, app_event.clone()).await;
+                    event_stats.record_event(&app_event, &result);
 
-                        // Handle processing errors
-                        // 処理エラーを処理
-                        if let Err(ref error) = result {
-                            // Log error but continue running
-                            // エラーをログするが実行を継続
-                            #[cfg(debug_assertions)]
-                            eprintln!("Event processing error: {}", error);
-                        }
+                    // Handle processing errors
+                    // 処理エラーを処理
+                    if let Err(ref error) = result {
+                        // Log error but continue running
+                        // エラーをログするが実行を継続
+                        #[cfg(debug_assertions)]
+                        eprintln!("Event processing error: {}", error);
                     }
                 }
-                // Ignore other events (resize, mouse, etc.) for Phase 1
-                // Phase 1では他のイベント（リサイズ、マウス等）を無視
             }
+            // Note: Other events (resize, mouse, etc.) are implicitly ignored
+            // 注意: その他のイベント（リサイズ、マウス等）は暗黙的に無視される
         }
 
         // Render UI with frame rate limiting
