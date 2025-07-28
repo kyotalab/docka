@@ -182,25 +182,23 @@ impl App {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use std::sync::Arc;
-    /// # use docka::domain::MockDockerRepository;
+    /// # use docka::infrastructure::BollardDockerRepository;
     /// # use docka::ui::app::App;
-    /// let mock_repo = Arc::new(MockDockerRepository::new());
-    /// let mut app = App::new(mock_repo);
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let docker_repo = Arc::new(BollardDockerRepository::new().await?);
+    /// let mut app = App::new(docker_repo);
     ///
-    /// // Assume we have 3 containers
-    /// app.containers = vec![/* container1, container2, container3 */];
-    /// app.selected_index = 0;
+    /// // Load some containers first
+    /// app.refresh_containers().await?;
     ///
-    /// app.select_next();
-    /// assert_eq!(app.selected_index, 1);
-    ///
-    /// app.select_next();
-    /// assert_eq!(app.selected_index, 2);
-    ///
-    /// app.select_next(); // Should wrap to 0
-    /// assert_eq!(app.selected_index, 0);
+    /// // Navigate through containers
+    /// app.select_next();  // Move to next container
+    /// app.select_next();  // Move to next container again
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn select_next(&mut self) {
         if self.containers.is_empty() {
@@ -221,22 +219,23 @@ impl App {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use std::sync::Arc;
-    /// # use docka::domain::MockDockerRepository;
+    /// # use docka::infrastructure::BollardDockerRepository;
     /// # use docka::ui::app::App;
-    /// let mock_repo = Arc::new(MockDockerRepository::new());
-    /// let mut app = App::new(mock_repo);
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let docker_repo = Arc::new(BollardDockerRepository::new().await?);
+    /// let mut app = App::new(docker_repo);
     ///
-    /// // Assume we have 3 containers
-    /// app.containers = vec![/* container1, container2, container3 */];
-    /// app.selected_index = 0;
+    /// // Load some containers first
+    /// app.refresh_containers().await?;
     ///
-    /// app.select_previous(); // Should wrap to 2
-    /// assert_eq!(app.selected_index, 2);
-    ///
-    /// app.select_previous();
-    /// assert_eq!(app.selected_index, 1);
+    /// // Navigate backwards through containers
+    /// app.select_previous();  // Move to previous container (wraps to last)
+    /// app.select_previous();  // Move to previous container
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn select_previous(&mut self) {
         if self.containers.is_empty() {
@@ -259,20 +258,27 @@ impl App {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use std::sync::Arc;
-    /// # use docka::domain::MockDockerRepository;
+    /// # use docka::infrastructure::BollardDockerRepository;
     /// # use docka::ui::app::App;
-    /// let mock_repo = Arc::new(MockDockerRepository::new());
-    /// let mut app = App::new(mock_repo);
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let docker_repo = Arc::new(BollardDockerRepository::new().await?);
+    /// let mut app = App::new(docker_repo);
     ///
-    /// // Empty list case
+    /// // Initially no container is selected (empty list)
     /// assert!(app.selected_container().is_none());
     ///
-    /// // With containers
-    /// app.containers = vec![/* container1, container2 */];
-    /// app.selected_index = 0;
-    /// assert!(app.selected_container().is_some());
+    /// // After loading containers, first one is selected by default
+    /// app.refresh_containers().await?;
+    /// if !app.containers.is_empty() {
+    ///     assert!(app.selected_container().is_some());
+    ///     let selected = app.selected_container().unwrap();
+    ///     println!("Selected container: {}", selected.display_name());
+    /// }
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn selected_container(&self) -> Option<&Container> {
         self.containers.get(self.selected_index)

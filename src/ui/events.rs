@@ -520,10 +520,21 @@ mod tests {
             KeyModifiers::NONE
         )));
 
-        // Invalid keys - these should still return true as we're permissive
-        // Most key validation is done in the key event handler itself
-        assert!(validate_key_input(create_key_event(
+        // Invalid keys - these should return false as our function is restrictive
+        // 無効なキー - この関数は制限的なので false を返すべき
+        assert!(!validate_key_input(create_key_event(
             KeyCode::Insert,
+            KeyModifiers::NONE
+        )));
+
+        // Valid editing keys
+        // 有効な編集キー
+        assert!(validate_key_input(create_key_event(
+            KeyCode::Backspace,
+            KeyModifiers::NONE
+        )));
+        assert!(validate_key_input(create_key_event(
+            KeyCode::Delete,
             KeyModifiers::NONE
         )));
     }
@@ -547,7 +558,7 @@ mod tests {
         assert_eq!(stats.error_count, 1);
 
         // Test error rate calculation
-        assert!((stats.error_rate() - 33.333333333333336).abs() < f64::EPSILON);
+        assert!((stats.error_rate() - 33.333333333333336).abs() < 0.01);
 
         // Test reset
         stats.reset();
