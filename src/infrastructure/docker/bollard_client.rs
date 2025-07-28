@@ -701,7 +701,12 @@ mod tests {
         assert_eq!(container.image, "unknown"); // Default fallback
         assert_eq!(container.status, ContainerStatus::Dead); // Default fallback
         assert!(container.labels.is_empty());
-        assert!(container.command.as_ref().is_none_or(std::string::String::is_empty)); // Should be empty or None
+        assert!(
+            container
+                .command
+                .as_ref()
+                .is_none_or(std::string::String::is_empty)
+        ); // Should be empty or None
     }
 
     #[test]
@@ -873,7 +878,7 @@ mod tests {
             ),
             (Some("/bin/bash".to_string()), Some("/bin/bash".to_string())),
             (Some(String::new()), None), // 空文字列は除外
-            (None, None),                 // コマンドなし
+            (None, None),                // コマンドなし
         ];
 
         for (docker_command, expected_command) in test_cases {
@@ -1050,10 +1055,7 @@ mod tests {
                 // All conversions should succeed
                 // 全ての変換が成功するべき
                 for (idx, result) in results.iter().enumerate() {
-                    assert!(
-                        result.is_ok(),
-                        "Thread {i} conversion {idx} should succeed"
-                    );
+                    assert!(result.is_ok(), "Thread {i} conversion {idx} should succeed");
                 }
 
                 results.len()
