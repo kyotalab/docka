@@ -79,18 +79,15 @@ pub mod events;
 /// レスポンシブデザイン処理のためのレイアウトマネージャーを提供します。
 pub mod layouts;
 
-// Phase 1.2.2 で実装予定
-// To be implemented in Phase 1.2.2
-
-// /// Widget implementations for TUI components.
-// ///
-// /// This module contains reusable TUI widgets for displaying containers,
-// /// status information, and other UI elements.
-// ///
-// /// TUIコンポーネント用ウィジェット実装。
-// /// コンテナ、ステータス情報、その他UI要素を表示するための
-// /// 再利用可能なTUIウィジェットを含みます。
-// pub mod widgets;
+/// Widget implementations for TUI components.
+///
+/// This module contains reusable TUI widgets for displaying containers,
+/// status information, and other UI elements.
+///
+/// TUIコンポーネント用ウィジェット実装。
+/// コンテナ、ステータス情報、その他UI要素を表示するための
+/// 再利用可能なTUIウィジェットを含みます。
+pub mod widgets;
 
 // Re-export commonly used types
 // よく使用される型を再エクスポート
@@ -106,3 +103,7 @@ pub use events::{AppEvent, EventStats, handle_key_event, process_app_event, vali
 /// Layout management types and functions.
 /// レイアウト管理型と関数。
 pub use layouts::{LayoutAreas, SimpleLayout};
+
+/// Widget types and functions.
+/// ウィジェット型と関数。
+pub use widgets::StatusBar;
