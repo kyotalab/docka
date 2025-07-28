@@ -17,18 +17,27 @@
 //!
 //! # Usage
 //!
-//! ```rust
+//! ```rust,no_run
 //! use docka::ui::widgets::StatusBar;
+//! use docka::ui::app::App;
 //! use ratatui::{backend::TestBackend, Terminal, layout::Rect};
+//! use std::sync::Arc;
+//!
+//! // Create test app (requires Docker repository)
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! let docker_repo = Arc::new(docka::infrastructure::BollardDockerRepository::new().await?);
+//! let app = App::new(docker_repo);
 //!
 //! // Render status bar in a TUI application
 //! let backend = TestBackend::new(80, 24);
-//! let mut terminal = Terminal::new(backend).unwrap();
+//! let mut terminal = Terminal::new(backend)?;
 //!
 //! terminal.draw(|f| {
 //!     let area = Rect::new(0, 20, 80, 3);
 //!     StatusBar::render(f, &app, area);
-//! }).unwrap();
+//! })?;
+//! # Ok(())
+//! # }
 //! ```
 
 /// Status bar widget for displaying application state and information.
