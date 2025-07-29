@@ -288,11 +288,21 @@ impl App {
     /// ```
     pub fn select_next(&mut self) {
         if self.containers.is_empty() {
+            self.selected_index = 0;
             return;
         }
 
+        // Normalize selected_index to valid range first
+        // 最初に selected_index を有効な範囲に正規化
+        if self.selected_index >= self.containers.len() {
+            self.selected_index = 0;
+        }
+
+        // Now perform the actual navigation (always executed for non-empty lists)
+        // 実際のナビゲーションを実行（空でないリストに対して常に実行）
         self.selected_index = (self.selected_index + 1) % self.containers.len();
-        self.last_activity = Instant::now(); // アクティビティ更新を追加
+
+        self.last_activity = Instant::now();
     }
 
     /// Select previous container in the list (循環ナビゲーション - 上方向)
@@ -326,15 +336,25 @@ impl App {
     /// ```
     pub fn select_previous(&mut self) {
         if self.containers.is_empty() {
+            self.selected_index = 0;
             return;
         }
 
+        // Normalize selected_index to valid range first
+        // 最初に selected_index を有効な範囲に正規化
+        if self.selected_index >= self.containers.len() {
+            self.selected_index = 0;
+        }
+
+        // Now perform the actual navigation (always executed for non-empty lists)
+        // 実際のナビゲーションを実行（空でないリストに対して常に実行）
         if self.selected_index == 0 {
             self.selected_index = self.containers.len() - 1;
         } else {
             self.selected_index -= 1;
         }
-        self.last_activity = Instant::now(); // アクティビティ更新を追加
+
+        self.last_activity = Instant::now();
     }
 
     /// Get currently selected container if any
@@ -424,7 +444,10 @@ impl App {
     /// ```rust,no_run
     /// use std::sync::Arc;
     /// use docka::{
-    ///     ui::{App, ContainerListWidget, NavigationDirection},
+    ///     ui::{
+    ///         {app::NavigationDirection},
+    ///         App, ContainerListWidget
+    ///     },
     ///     infrastructure::BollardDockerRepository,
     /// };
     ///
@@ -593,7 +616,7 @@ impl App {
     /// app.refresh_containers().await?;
     ///
     /// if let Some(container) = app.get_selected_container() {
-    ///     println!("Selected: {}", container.name());
+    ///     println!("Selected: {}", container.name);
     /// }
     /// # Ok(())
     /// # }
@@ -911,5 +934,573 @@ mod tests {
         } else {
             panic!("Expected Error state");
         }
+    }
+}
+
+// src/ui/app.rs の末尾に追加するナビゲーション単体テスト
+// Navigation unit tests to be added at the end of src/ui/app.rs
+
+#[cfg(test)]
+mod navigation_tests {
+    use super::*;
+    use crate::domain::{
+        entities::Container, repositories::MockDockerRepository, value_objects::ContainerStatus,
+    };
+    use std::sync::Arc;
+
+    /// Helper function to create App with test containers using builder pattern
+    /// ビルダーパターンを使用してテストコンテナを持つAppを作成するヘルパー関数
+    fn create_app_with_containers(count: usize) -> App {
+        let mock_repo = Arc::new(MockDockerRepository::new());
+        let mut app = App::new(mock_repo);
+
+        app.containers = (0..count)
+            .map(|i| {
+                let status = match i % 4 {
+                    0 => ContainerStatus::Running,
+                    1 => ContainerStatus::Stopped,
+                    2 => ContainerStatus::Paused,
+                    _ => ContainerStatus::Exited { exit_code: 0 },
+                };
+
+                Container::builder()
+                    .id(&format!("container_{}", i))
+                    .name(&format!("test_container_{}", i))
+                    .image(&format!("test_image_{}", i))
+                    .status(status)
+                    .build()
+                    .expect("Valid test container")
+            })
+            .collect();
+
+        app.view_state = ViewState::ContainerList;
+        app
+    }
+
+    /// Helper function to create App with specific containers using builder pattern
+    /// ビルダーパターンを使用して特定のコンテナを持つAppを作成するヘルパー関数
+    fn create_app_with_specific_containers() -> App {
+        let mock_repo = Arc::new(MockDockerRepository::new());
+        let mut app = App::new(mock_repo);
+
+        app.containers = vec![
+            Container::builder()
+                .id("web_server")
+                .name("web_server")
+                .image("nginx:latest")
+                .status(ContainerStatus::Running)
+                .build()
+                .expect("Valid web server container"),
+            Container::builder()
+                .id("database")
+                .name("database")
+                .image("postgres:13")
+                .status(ContainerStatus::Running)
+                .build()
+                .expect("Valid database container"),
+            Container::builder()
+                .id("cache")
+                .name("cache")
+                .image("redis:alpine")
+                .status(ContainerStatus::Stopped)
+                .build()
+                .expect("Valid cache container"),
+        ];
+
+        app.view_state = ViewState::ContainerList;
+        app
+    }
+
+    #[test]
+    fn test_select_next_basic_navigation() {
+        // Test basic forward navigation
+        // 基本的な前進ナビゲーションテスト
+        let mut app = create_app_with_containers(5);
+        app.selected_index = 0;
+
+        // Navigate forward through containers
+        // コンテナを前進ナビゲート
+        for expected_index in 1..5 {
+            app.select_next();
+            assert_eq!(
+                app.selected_index, expected_index,
+                "Failed to navigate to index {}",
+                expected_index
+            );
+        }
+    }
+
+    #[test]
+    fn test_select_next_wraparound() {
+        // Test wraparound navigation (last to first)
+        // 循環ナビゲーションテスト（最後から最初へ）
+        let mut app = create_app_with_containers(3);
+        app.selected_index = 2; // Last item
+
+        // Should wrap to first item
+        // 最初のアイテムにラップするはず
+        app.select_next();
+        assert_eq!(
+            app.selected_index, 0,
+            "Failed to wrap around from last to first item"
+        );
+    }
+
+    #[test]
+    fn test_select_previous_basic_navigation() {
+        // Test basic backward navigation
+        // 基本的な後退ナビゲーションテスト
+        let mut app = create_app_with_containers(5);
+        app.selected_index = 4; // Last item
+
+        // Navigate backward through containers
+        // コンテナを後退ナビゲート
+        for expected_index in (0..4).rev() {
+            app.select_previous();
+            assert_eq!(
+                app.selected_index, expected_index,
+                "Failed to navigate to index {}",
+                expected_index
+            );
+        }
+    }
+
+    #[test]
+    fn test_select_previous_wraparound() {
+        // Test wraparound navigation (first to last)
+        // 循環ナビゲーションテスト（最初から最後へ）
+        let mut app = create_app_with_containers(3);
+        app.selected_index = 0; // First item
+
+        // Should wrap to last item
+        // 最後のアイテムにラップするはず
+        app.select_previous();
+        assert_eq!(
+            app.selected_index, 2,
+            "Failed to wrap around from first to last item"
+        );
+    }
+
+    #[test]
+    fn test_navigation_with_empty_container_list() {
+        // Test navigation behavior with empty container list
+        // 空のコンテナリストでのナビゲーション動作テスト
+        let mut app = create_app_with_containers(0);
+        app.selected_index = 0;
+
+        let original_index = app.selected_index;
+
+        // Navigation should not change index with empty list
+        // 空リストではナビゲーションでインデックスが変更されないはず
+        app.select_next();
+        assert_eq!(
+            app.selected_index, original_index,
+            "Navigation should not change index with empty container list"
+        );
+
+        app.select_previous();
+        assert_eq!(
+            app.selected_index, original_index,
+            "Navigation should not change index with empty container list"
+        );
+    }
+
+    #[test]
+    fn test_navigation_with_single_container() {
+        // Test navigation behavior with single container
+        // 単一コンテナでのナビゲーション動作テスト
+        let mut app = create_app_with_containers(1);
+        app.selected_index = 0;
+
+        // Navigation should wrap to same item
+        // ナビゲーションは同じアイテムにラップするはず
+        app.select_next();
+        assert_eq!(
+            app.selected_index, 0,
+            "Navigation with single item should stay at index 0"
+        );
+
+        app.select_previous();
+        assert_eq!(
+            app.selected_index, 0,
+            "Navigation with single item should stay at index 0"
+        );
+    }
+
+    #[test]
+    fn test_out_of_bounds_navigation() {
+        // Test navigation with out-of-bounds initial index
+        // 範囲外初期インデックスでのナビゲーションテスト
+        let mut app = create_app_with_containers(3);
+        app.selected_index = 999; // Way out of bounds
+
+        // Navigation should normalize and handle gracefully
+        // ナビゲーションは正規化して適切に処理されるはず
+        app.select_next();
+        assert!(
+            app.selected_index < app.containers.len(),
+            "Navigation should keep index within bounds after select_next"
+        );
+        // After select_next() from out-of-bounds, should be at index 1 (0 + 1)
+        // 範囲外からselect_next()後は、インデックス1 (0 + 1)になるはず
+        assert_eq!(
+            app.selected_index, 1,
+            "select_next from out-of-bounds should start at 0 then move to 1"
+        );
+
+        app.selected_index = 999; // Reset to out of bounds
+        app.select_previous();
+        assert!(
+            app.selected_index < app.containers.len(),
+            "Navigation should keep index within bounds after select_previous"
+        );
+        // After select_previous() from out-of-bounds, should be at last index
+        // 範囲外からselect_previous()後は、最後のインデックスになるはず
+        assert_eq!(
+            app.selected_index,
+            app.containers.len() - 1,
+            "select_previous from out-of-bounds should go to last index"
+        );
+    }
+
+    #[test]
+    fn test_get_selected_container() {
+        // Test getting selected container
+        // 選択されたコンテナの取得テスト
+        let mut app = create_app_with_specific_containers();
+
+        // Test valid selection
+        // 有効な選択のテスト
+        app.selected_index = 1;
+        let selected = app.get_selected_container();
+        assert!(selected.is_some(), "Should return selected container");
+        if let Some(container) = selected {
+            assert_eq!(container.name, "database");
+        }
+
+        // Test invalid selection
+        // 無効な選択のテスト
+        app.selected_index = 999;
+        let selected = app.get_selected_container();
+        assert!(selected.is_none(), "Should return None for invalid index");
+    }
+
+    #[test]
+    fn test_get_selected_container_with_empty_list() {
+        // Test getting selected container with empty list
+        // 空リストでの選択されたコンテナ取得テスト
+        let mut app = create_app_with_containers(0);
+        app.selected_index = 0;
+
+        let selected = app.get_selected_container();
+        assert!(
+            selected.is_none(),
+            "Should return None when container list is empty"
+        );
+    }
+
+    #[test]
+    fn test_navigation_sequence_integrity() {
+        // Test navigation sequence maintains integrity
+        // ナビゲーションシーケンスの整合性テスト
+        let mut app = create_app_with_containers(4);
+        app.selected_index = 0;
+
+        // Forward navigation sequence
+        // 前進ナビゲーションシーケンス
+        let expected_forward = vec![1, 2, 3, 0]; // Last wraps to first
+        for expected in expected_forward {
+            app.select_next();
+            assert_eq!(app.selected_index, expected);
+        }
+
+        // Backward navigation sequence from current position
+        // 現在位置からの後退ナビゲーションシーケンス
+        let expected_backward = vec![3, 2, 1, 0]; // First wraps to last, then continues
+        for expected in expected_backward {
+            app.select_previous();
+            assert_eq!(app.selected_index, expected);
+        }
+    }
+
+    #[test]
+    fn test_navigation_bounds_checking_updated() {
+        // Test that navigation always keeps index within valid bounds (updated version)
+        // ナビゲーションが常にインデックスを有効な範囲内に保つことをテスト（更新版）
+        let mut app = create_app_with_containers(5);
+
+        // Test with various starting positions including extreme values
+        // 極端な値を含む様々な開始位置でのテスト
+        for start_index in [0, 2, 4, 999, usize::MAX] {
+            app.selected_index = start_index;
+
+            // Perform multiple navigation operations
+            // 複数のナビゲーション操作を実行
+            for _ in 0..10 {
+                app.select_next();
+                assert!(
+                    app.selected_index < app.containers.len(),
+                    "Index {} should be less than container count {} after select_next",
+                    app.selected_index,
+                    app.containers.len()
+                );
+            }
+
+            // Reset to test value and test select_previous
+            // テスト値にリセットしてselect_previousをテスト
+            app.selected_index = start_index;
+            for _ in 0..10 {
+                app.select_previous();
+                assert!(
+                    app.selected_index < app.containers.len(),
+                    "Index {} should be less than container count {} after select_previous",
+                    app.selected_index,
+                    app.containers.len()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_extreme_index_normalization() {
+        // Test normalization behavior with extreme index values
+        // 極端なインデックス値での正規化動作テスト
+        let mut app = create_app_with_containers(3);
+
+        // Test various extreme values
+        // 様々な極端な値をテスト
+        let extreme_values = [
+            usize::MAX,
+            usize::MAX - 1,
+            1000,
+            999,
+            10,
+            5,
+            3, // Equal to container count
+            4, // Just above container count
+        ];
+
+        for &extreme_value in &extreme_values {
+            // Test select_next normalization
+            // select_nextの正規化をテスト
+            app.selected_index = extreme_value;
+            app.select_next();
+            assert!(
+                app.selected_index < app.containers.len(),
+                "select_next should normalize extreme value {} to valid range",
+                extreme_value
+            );
+
+            // Test select_previous normalization
+            // select_previousの正規化をテスト
+            app.selected_index = extreme_value;
+            app.select_previous();
+            assert!(
+                app.selected_index < app.containers.len(),
+                "select_previous should normalize extreme value {} to valid range",
+                extreme_value
+            );
+        }
+    }
+
+    #[test]
+    fn test_navigation_with_container_list_changes() {
+        // Test navigation behavior when container list changes
+        // コンテナリスト変更時のナビゲーション動作テスト
+        let mut app = create_app_with_containers(5);
+        app.selected_index = 3;
+
+        // Simulate container list reduction (e.g., containers stopped/removed)
+        // コンテナリスト減少をシミュレート（例：コンテナ停止/削除）
+        app.containers.truncate(2);
+
+        // Navigation should handle reduced list gracefully
+        // ナビゲーションは減少したリストを適切に処理するはず
+        app.select_next();
+        assert!(
+            app.selected_index < app.containers.len(),
+            "Navigation should adapt to reduced container list"
+        );
+
+        app.select_previous();
+        assert!(
+            app.selected_index < app.containers.len(),
+            "Navigation should adapt to reduced container list"
+        );
+    }
+
+    #[test]
+    fn test_navigation_performance_stress() {
+        // Test navigation performance with rapid operations
+        // 高速操作でのナビゲーションパフォーマンステスト
+        let mut app = create_app_with_containers(100);
+        app.selected_index = 0;
+
+        // Perform many rapid navigation operations
+        // 多数の高速ナビゲーション操作を実行
+        for _ in 0..1000 {
+            app.select_next();
+        }
+
+        // Should complete without errors and maintain valid state
+        // エラーなしで完了し、有効な状態を維持するはず
+        assert!(app.selected_index < app.containers.len());
+
+        for _ in 0..1000 {
+            app.select_previous();
+        }
+
+        assert!(app.selected_index < app.containers.len());
+    }
+
+    #[test]
+    fn test_navigation_with_different_view_states() {
+        // Test navigation behavior in different view states
+        // 異なるビュー状態でのナビゲーション動作テスト
+        let mut app = create_app_with_containers(3);
+
+        // Test navigation in ContainerList state
+        // ContainerList状態でのナビゲーションテスト
+        app.view_state = ViewState::ContainerList;
+        app.selected_index = 0;
+        app.select_next();
+        assert_eq!(app.selected_index, 1);
+
+        // Test navigation in Loading state
+        // Loading状態でのナビゲーションテスト
+        app.view_state = ViewState::Loading;
+        let before_index = app.selected_index;
+        app.select_next();
+        // Navigation should still work regardless of view state
+        // ビュー状態に関係なくナビゲーションは機能するはず
+        assert_ne!(app.selected_index, before_index);
+
+        // Test navigation in Error state
+        // Error状態でのナビゲーションテスト
+        app.view_state = ViewState::Error("Test error".to_string());
+        let before_index = app.selected_index;
+        app.select_previous();
+        assert_ne!(app.selected_index, before_index);
+    }
+
+    #[test]
+    fn test_selected_container_consistency() {
+        // Test consistency between selected_index and get_selected_container
+        // selected_indexとget_selected_container間の一貫性テスト
+        let mut app = create_app_with_specific_containers();
+
+        for i in 0..app.containers.len() {
+            app.selected_index = i;
+            let selected = app.get_selected_container();
+
+            assert!(
+                selected.is_some(),
+                "Should return container for valid index {}",
+                i
+            );
+            if let Some(container) = selected {
+                assert_eq!(
+                    container.id, app.containers[i].id,
+                    "Selected container should match container at selected_index"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_navigation_edge_cases() {
+        // Test various edge cases for navigation
+        // ナビゲーションの様々なエッジケーステスト
+
+        // Test with maximum usize index
+        // 最大usizeインデックスでのテスト
+        let mut app = create_app_with_containers(3);
+        app.selected_index = usize::MAX;
+
+        // Should normalize to valid range without overflow
+        // オーバーフローなしで有効な範囲に正規化されるはず
+        app.select_next();
+        assert!(
+            app.selected_index < app.containers.len(),
+            "select_next should handle usize::MAX safely"
+        );
+        assert_eq!(
+            app.selected_index, 1,
+            "select_next from usize::MAX should normalize to 0 then move to 1"
+        );
+
+        // Test select_previous with usize::MAX
+        // usize::MAXでのselect_previousテスト
+        app.selected_index = usize::MAX;
+        app.select_previous();
+        assert!(
+            app.selected_index < app.containers.len(),
+            "select_previous should handle usize::MAX safely"
+        );
+        assert_eq!(
+            app.selected_index, 2,
+            "select_previous from usize::MAX should go to last index (2)"
+        );
+
+        // Test navigation consistency after multiple operations
+        // 複数操作後のナビゲーション一貫性テスト
+        app.selected_index = 0;
+        let original_container_id = app.containers[0].id.clone();
+
+        // Go around full circle
+        // 一周回る
+        for _ in 0..app.containers.len() {
+            app.select_next();
+        }
+
+        // Should be back to original position
+        // 元の位置に戻っているはず
+        assert_eq!(
+            app.selected_index, 0,
+            "Full circle navigation should return to start"
+        );
+        if let Some(selected) = app.get_selected_container() {
+            assert_eq!(
+                selected.id, original_container_id,
+                "Should select same container after full circle"
+            );
+        }
+    }
+
+    #[test]
+    fn test_navigation_mathematical_properties() {
+        // Test mathematical properties of navigation (commutativity, etc.)
+        // ナビゲーションの数学的特性をテスト（可換性など）
+        let mut app = create_app_with_containers(7);
+        app.selected_index = 3;
+
+        let start_index = app.selected_index;
+
+        // Test: n forward + n backward should return to start
+        // テスト: n回前進 + n回後退で開始位置に戻るはず
+        let n = 5;
+        for _ in 0..n {
+            app.select_next();
+        }
+        for _ in 0..n {
+            app.select_previous();
+        }
+
+        assert_eq!(
+            app.selected_index, start_index,
+            "Forward/backward navigation should be inverse operations"
+        );
+
+        // Test: container_count forward moves should return to start
+        // テスト: container_count回の前進移動で開始位置に戻るはず
+        let container_count = app.containers.len();
+        for _ in 0..container_count {
+            app.select_next();
+        }
+
+        assert_eq!(
+            app.selected_index, start_index,
+            "Full circle navigation should return to start"
+        );
     }
 }
