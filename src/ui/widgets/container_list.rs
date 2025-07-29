@@ -189,16 +189,25 @@ impl ContainerListWidget {
         // Determine base style based on container status
         // コンテナステータスに基づいてベーススタイルを決定
         let status_style = match container.status {
+            // Success: Running containers (Green)
+            // 成功: 実行中コンテナ (緑)
             ContainerStatus::Running => theme.styles.success_style(),
-            ContainerStatus::Exited { .. } => theme.styles.error_style(),
-            ContainerStatus::Paused => theme.styles.loading_style(),
-            ContainerStatus::Restarting => theme.styles.loading_style(),
-            ContainerStatus::Dead => theme.styles.error_style(),
-            ContainerStatus::Created => theme.styles.muted_style(),
-            ContainerStatus::Removing => theme.styles.loading_style(),
-            ContainerStatus::Stopped => theme.styles.muted_style(),
-            ContainerStatus::Starting => theme.styles.loading_style(),
-            ContainerStatus::Stopping => theme.styles.loading_style(),
+
+            // Error: Failed or dead containers (Red)
+            // エラー: 失敗または停止状態コンテナ (赤)
+            ContainerStatus::Exited { .. } | ContainerStatus::Dead => theme.styles.error_style(),
+
+            // Loading: Transitional states (Yellow)
+            // ローディング: 遷移状態 (黄)
+            ContainerStatus::Paused
+            | ContainerStatus::Restarting
+            | ContainerStatus::Removing
+            | ContainerStatus::Starting
+            | ContainerStatus::Stopping => theme.styles.loading_style(),
+
+            // Muted: Inactive states (Gray)
+            // 抑制: 非アクティブ状態 (グレー)
+            ContainerStatus::Created | ContainerStatus::Stopped => theme.styles.muted_style(),
         };
 
         // Apply selection highlighting if selected
@@ -308,11 +317,19 @@ mod tests {
     #[test]
     fn test_format_status_all_variants() {
         let test_cases = vec![
+            // Success states
+            (ContainerStatus::Running, "Running"),
+            // Error states
+            (ContainerStatus::Dead, "Dead"),
+            // Loading states
             (ContainerStatus::Paused, "Paused"),
             (ContainerStatus::Restarting, "Restarting"),
-            (ContainerStatus::Dead, "Dead"),
-            (ContainerStatus::Created, "Created"),
             (ContainerStatus::Removing, "Removing"),
+            (ContainerStatus::Starting, "Starting"),
+            (ContainerStatus::Stopping, "Stopping"),
+            // Muted states
+            (ContainerStatus::Created, "Created"),
+            (ContainerStatus::Stopped, "Stopped"),
         ];
 
         for (status, expected) in test_cases {
