@@ -45,14 +45,14 @@ pub struct ContainerListWidget {
 }
 
 impl ContainerListWidget {
-    /// Creates a new ContainerListWidget instance
-    /// 新しいContainerListWidgetインスタンスを作成
+    /// Creates a new `ContainerListWidget` instance
+    /// `新しいContainerListWidgetインスタンスを作成`
     ///
     /// # Returns
     ///
     /// A new widget instance with default list state
     /// デフォルトリスト状態を持つ新しいウィジェットインスタンス
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         Self {
             list_state: ListState::default(),
         }
@@ -92,7 +92,7 @@ impl ContainerListWidget {
 
     /// Get currently selected index
     /// 現在選択されているインデックスを取得
-    pub fn selected(&self) -> Option<usize> {
+    #[must_use] pub const fn selected(&self) -> Option<usize> {
         self.list_state.selected()
     }
 
@@ -115,7 +115,7 @@ impl ContainerListWidget {
     /// Renders the container list widget to the terminal
     /// コンテナリストウィジェットをターミナルにレンダリング
     pub fn render(
-        widget: &mut ContainerListWidget,
+        widget: &mut Self,
         f: &mut Frame,
         app: &App,
         area: Rect,
@@ -158,8 +158,8 @@ impl ContainerListWidget {
         f.render_stateful_widget(list, area, &mut widget.list_state);
     }
 
-    /// Formats a single container into a ListItem with appropriate styling
-    /// 単一コンテナを適切なスタイリングでListItemにフォーマット
+    /// Formats a single container into a `ListItem` with appropriate styling
+    /// `単一コンテナを適切なスタイリングでListItemにフォーマット`
     ///
     /// # Arguments
     ///
@@ -169,7 +169,7 @@ impl ContainerListWidget {
     ///
     /// # Returns
     ///
-    /// A styled ListItem representing the container
+    /// A styled `ListItem` representing the container
     ///
     /// # Format
     ///
@@ -241,7 +241,7 @@ impl ContainerListWidget {
         match status {
             ContainerStatus::Running => "Running".to_string(),
             ContainerStatus::Exited { exit_code } => {
-                format!("Exited ({})", exit_code)
+                format!("Exited ({exit_code})")
             }
             ContainerStatus::Paused => "Paused".to_string(),
             ContainerStatus::Restarting => "Restarting".to_string(),
@@ -269,7 +269,7 @@ mod tests {
 
     fn create_test_container(name: &str, status: ContainerStatus, image: &str) -> Container {
         ContainerBuilder::new()
-            .id(ContainerId::new(format!("{}_id", name)).unwrap())
+            .id(ContainerId::new(format!("{name}_id")).unwrap())
             .name(name.to_string())
             .image(image.to_string())
             .status(status)
