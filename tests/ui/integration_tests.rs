@@ -531,9 +531,9 @@ mod tests {
                         _ => ContainerStatus::Exited { exit_code: 0 },
                     };
                     Container::builder()
-                        .id(&format!("container_{}", i))
-                        .name(&format!("service_{}", i))
-                        .image(&format!("image_{}", i))
+                        .id(format!("container_{}", i))
+                        .name(format!("service_{}", i))
+                        .image(format!("image_{}", i))
                         .status(status)
                         .build()
                         .expect("Valid test container")
@@ -767,9 +767,9 @@ mod tests {
                     _ => ContainerStatus::Exited { exit_code: 0 },
                 };
                 Container::builder()
-                    .id(&format!("container_{}", i))
-                    .name(&format!("service_{}", i))
-                    .image(&format!("image_{}", i))
+                    .id(format!("container_{}", i))
+                    .name(format!("service_{}", i))
+                    .image(format!("image_{}", i))
                     .status(status)
                     .build()
                     .expect("Valid test container")
@@ -1042,5 +1042,24 @@ mod tests {
         // ナビゲーション後、アプリとウィジェット両方が同期されているはず
         assert_eq!(helper.app.selected_index, 3);
         assert_eq!(helper.container_list_widget.selected(), Some(3));
+    }
+
+    #[test]
+    fn test_navigation_direction_copy() {
+        // Test that NavigationDirection implements Copy trait
+        // NavigationDirectionがCopyトレイトを実装していることをテスト
+        let direction1 = NavigationDirection::Next;
+        let direction2 = direction1; // Copy, not move
+
+        // Both should be usable after copy
+        // コピー後も両方が使用可能であるべき
+        assert_eq!(direction1, NavigationDirection::Next);
+        assert_eq!(direction2, NavigationDirection::Next);
+
+        // Test Previous variant
+        let direction3 = NavigationDirection::Previous;
+        let direction4 = direction3;
+        assert_eq!(direction3, NavigationDirection::Previous);
+        assert_eq!(direction4, NavigationDirection::Previous);
     }
 }

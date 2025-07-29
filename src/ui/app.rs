@@ -25,7 +25,7 @@ pub enum ViewState {
 
 /// Navigation direction for container selection
 /// コンテナ選択のナビゲーション方向
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavigationDirection {
     /// Move to next container (j, Down key)
     /// 次のコンテナに移動 (j, Down キー)
@@ -114,11 +114,11 @@ pub struct App {
     /// `false` - コンテナリストスペース最大化のため初期状態では非表示
     ///
     /// # Usage
-    /// - Toggle with '?' key or explicit toggle_help() method call
-    /// - Automatically respected by layout system (SimpleLayout)
+    /// - Toggle with '?' key or explicit `toggle_help()` method call
+    /// - Automatically respected by layout system (`SimpleLayout`)
     /// - Only shown when terminal has sufficient height (≥10 rows)
     ///
-    /// - '?'キーまたは明示的なtoggle_help()メソッド呼び出しで切り替え
+    /// - '?'`キーまたは明示的なtoggle_help()メソッド呼び出しで切り替え`
     /// - レイアウトシステム（SimpleLayout）により自動的に考慮される
     /// - ターミナルに十分な高さ（≥10行）がある場合のみ表示
     ///
@@ -429,14 +429,14 @@ impl App {
     /// ウィジェット状態同期付きコンテナナビゲーション処理
     ///
     /// This method provides bidirectional synchronization between App state
-    /// and ContainerListWidget state during navigation operations.
+    /// and `ContainerListWidget` state during navigation operations.
     ///
     /// このメソッドはナビゲーション操作中にApp状態と
-    /// ContainerListWidget状態の双方向同期を提供します。
+    /// `ContainerListWidget状態の双方向同期を提供します`。
     ///
     /// # Arguments
     ///
-    /// * `widget` - Mutable reference to ContainerListWidget
+    /// * `widget` - Mutable reference to `ContainerListWidget`
     /// * `direction` - Navigation direction (Next/Previous)
     ///
     /// # Examples
@@ -510,14 +510,14 @@ impl App {
     /// 現在のアプリ状態とウィジェット状態を同期
     ///
     /// This method ensures that the widget's selection state matches
-    /// the app's selected_index when needed.
+    /// the app's `selected_index` when needed.
     ///
     /// このメソッドは必要に応じてウィジェットの選択状態が
-    /// アプリのselected_indexと一致することを保証します。
+    /// `アプリのselected_indexと一致することを保証します`。
     ///
     /// # Arguments
     ///
-    /// * `widget` - Mutable reference to ContainerListWidget
+    /// * `widget` - Mutable reference to `ContainerListWidget`
     ///
     /// # Examples
     ///
@@ -646,7 +646,7 @@ impl App {
     ///
     /// # Returns
     ///
-    /// * `bool` - True if selected_index is valid for current container list
+    /// * `bool` - True if `selected_index` is valid for current container list
     #[must_use]
     pub fn is_selected_index_valid(&self) -> bool {
         !self.containers.is_empty() && self.selected_index < self.containers.len()
@@ -964,9 +964,9 @@ mod navigation_tests {
                 };
 
                 Container::builder()
-                    .id(&format!("container_{}", i))
-                    .name(&format!("test_container_{}", i))
-                    .image(&format!("test_image_{}", i))
+                    .id(format!("container_{i}"))
+                    .name(format!("test_container_{i}"))
+                    .image(format!("test_image_{i}"))
                     .status(status)
                     .build()
                     .expect("Valid test container")
@@ -1024,8 +1024,7 @@ mod navigation_tests {
             app.select_next();
             assert_eq!(
                 app.selected_index, expected_index,
-                "Failed to navigate to index {}",
-                expected_index
+                "Failed to navigate to index {expected_index}"
             );
         }
     }
@@ -1059,8 +1058,7 @@ mod navigation_tests {
             app.select_previous();
             assert_eq!(
                 app.selected_index, expected_index,
-                "Failed to navigate to index {}",
-                expected_index
+                "Failed to navigate to index {expected_index}"
             );
         }
     }
@@ -1287,8 +1285,7 @@ mod navigation_tests {
             app.select_next();
             assert!(
                 app.selected_index < app.containers.len(),
-                "select_next should normalize extreme value {} to valid range",
-                extreme_value
+                "select_next should normalize extreme value {extreme_value} to valid range"
             );
 
             // Test select_previous normalization
@@ -1297,8 +1294,7 @@ mod navigation_tests {
             app.select_previous();
             assert!(
                 app.selected_index < app.containers.len(),
-                "select_previous should normalize extreme value {} to valid range",
-                extreme_value
+                "select_previous should normalize extreme value {extreme_value} to valid range"
             );
         }
     }
@@ -1395,8 +1391,7 @@ mod navigation_tests {
 
             assert!(
                 selected.is_some(),
-                "Should return container for valid index {}",
-                i
+                "Should return container for valid index {i}"
             );
             if let Some(container) = selected {
                 assert_eq!(
