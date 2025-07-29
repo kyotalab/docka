@@ -117,7 +117,7 @@ pub use layouts::{LayoutAreas, SimpleLayout};
 
 /// Widget types and functions.
 /// ウィジェット型と関数。
-pub use widgets::StatusBar;
+pub use widgets::{ContainerListWidget, StatusBar};
 
 /// Styling and theming types.
 /// スタイリングとテーマ設定型。
