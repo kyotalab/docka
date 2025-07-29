@@ -1,3 +1,7 @@
+// src/ui/widgets/mod.rs
+// Widget implementations for TUI components
+// TUIコンポーネント用ウィジェット実装
+
 //! Widget implementations for TUI components.
 //!
 //! This module contains reusable TUI widgets for displaying containers,
@@ -18,7 +22,7 @@
 //! # Usage
 //!
 //! ```rust,no_run
-//! use docka::ui::widgets::StatusBar;
+//! use docka::ui::widgets::{StatusBar, ContainerListWidget};
 //! use docka::ui::app::App;
 //! use ratatui::{backend::TestBackend, Terminal, layout::Rect};
 //! use std::sync::Arc;
@@ -28,13 +32,16 @@
 //! let docker_repo = Arc::new(docka::infrastructure::BollardDockerRepository::new().await?);
 //! let app = App::new(docker_repo);
 //!
-//! // Render status bar in a TUI application
+//! // Render widgets in a TUI application
 //! let backend = TestBackend::new(80, 24);
 //! let mut terminal = Terminal::new(backend)?;
 //!
 //! terminal.draw(|f| {
-//!     let area = Rect::new(0, 20, 80, 3);
-//!     StatusBar::render(f, &app, area);
+//!     let area = Rect::new(0, 0, 80, 20);
+//!     let status_area = Rect::new(0, 20, 80, 3);
+//!
+//!     ContainerListWidget::render(f, &app, area, &docka::ui::Theme::dark());
+//!     StatusBar::render(f, &app, status_area);
 //! })?;
 //! # Ok(())
 //! # }
@@ -50,18 +57,15 @@
 /// 表示するステータスバーウィジェットを提供します。
 pub mod status_bar;
 
-// Phase 1.2.2 で実装予定
-// To be implemented in Phase 1.2.2
-
-// /// Container list widget for displaying Docker containers.
-// ///
-// /// This module provides a widget for displaying a list of Docker containers
-// /// with navigation, status indicators, and selection highlighting.
-// ///
-// /// コンテナリストウィジェット - Dockerコンテナ表示用。
-// /// ナビゲーション、ステータスインジケーター、選択ハイライト付きの
-// /// Dockerコンテナリスト表示ウィジェットを提供します。
-// pub mod container_list;
+/// Container list widget for displaying Docker containers.
+///
+/// This module provides a widget for displaying a list of Docker containers
+/// with navigation, status indicators, and selection highlighting.
+///
+/// コンテナリストウィジェット - Dockerコンテナ表示用。
+/// ナビゲーション、ステータスインジケーター、選択ハイライト付きの
+/// Dockerコンテナリスト表示ウィジェットを提供します。
+pub mod container_list;
 
 // Re-export commonly used types for convenient access
 // 便利なアクセスのためによく使用される型を再エクスポート
@@ -69,3 +73,7 @@ pub mod status_bar;
 /// Status bar widget for displaying application state and information
 /// アプリケーション状態と情報を表示するステータスバーウィジェット
 pub use status_bar::StatusBar;
+
+/// Container list widget for displaying Docker containers
+/// Dockerコンテナリスト表示ウィジェット
+pub use container_list::ContainerListWidget;
