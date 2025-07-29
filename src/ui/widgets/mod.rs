@@ -21,31 +21,35 @@
 //!
 //! # Usage
 //!
-//! ```rust,no_run
-//! use docka::ui::widgets::{StatusBar, ContainerListWidget};
-//! use docka::ui::app::App;
-//! use ratatui::{backend::TestBackend, Terminal, layout::Rect};
-//! use std::sync::Arc;
-//!
-//! // Create test app (requires Docker repository)
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! let docker_repo = Arc::new(docka::infrastructure::BollardDockerRepository::new().await?);
-//! let app = App::new(docker_repo);
-//!
-//! // Render widgets in a TUI application
-//! let backend = TestBackend::new(80, 24);
-//! let mut terminal = Terminal::new(backend)?;
-//!
-//! terminal.draw(|f| {
-//!     let area = Rect::new(0, 0, 80, 20);
-//!     let status_area = Rect::new(0, 20, 80, 3);
-//!
-//!     ContainerListWidget::render(f, &app, area, &docka::ui::Theme::dark());
-//!     StatusBar::render(f, &app, status_area);
-//! })?;
-//! # Ok(())
-//! # }
-//! ```
+/// # Usage
+///
+/// ```rust,no_run
+/// use docka::ui::widgets::{StatusBar, ContainerListWidget};
+/// use docka::ui::app::App;
+/// use ratatui::{backend::TestBackend, Terminal, layout::Rect};
+/// use std::sync::Arc;
+///
+/// // Create test app (requires Docker repository)
+/// async fn example() -> Result<(), Box<dyn std::error::Error>> {
+///     let docker_repo = Arc::new(docka::infrastructure::BollardDockerRepository::new().await?);
+///     let app = App::new(docker_repo);
+///     let mut container_widget = ContainerListWidget::new();
+///
+///     // Render widgets in a TUI application
+///     let backend = TestBackend::new(80, 24);
+///     let mut terminal = Terminal::new(backend)?;
+///
+///     terminal.draw(|f| {
+///         let area = Rect::new(0, 0, 80, 20);
+///         let status_area = Rect::new(0, 20, 80, 3);
+///
+///         ContainerListWidget::render(&mut container_widget, f, &app, area, &docka::ui::Theme::dark());
+///         StatusBar::render(f, &app, status_area);
+///     })?;
+///
+///     Ok(())
+/// }
+/// ```
 
 /// Status bar widget for displaying application state and information.
 ///

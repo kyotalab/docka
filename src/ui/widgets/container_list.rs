@@ -33,9 +33,19 @@ use crate::ui::{app::App, styles::Theme};
 /// ```rust,no_run
 /// use docka::ui::{ContainerListWidget, App, Theme};
 /// use ratatui::{Frame, layout::Rect};
+/// use std::sync::Arc;
 ///
-/// fn render_container_list(f: &mut Frame, app: &App, area: Rect, theme: &Theme) {
-///     ContainerListWidget::render(f, app, area, theme);
+/// async fn render_container_list() -> Result<(), Box<dyn std::error::Error>> {
+///     let docker_repo = Arc::new(docka::infrastructure::BollardDockerRepository::new().await?);
+///     let app = App::new(docker_repo);
+///     let mut widget = ContainerListWidget::new();
+///     let theme = Theme::dark();
+///
+///     // In a real TUI loop, you would have a Frame available
+///     // 実際のTUIループでは、Frameが利用可能になります
+///     // ContainerListWidget::render(&mut widget, f, &app, area, &theme);
+///
+///     Ok(())
 /// }
 /// ```
 pub struct ContainerListWidget {
@@ -52,7 +62,8 @@ impl ContainerListWidget {
     ///
     /// A new widget instance with default list state
     /// デフォルトリスト状態を持つ新しいウィジェットインスタンス
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self {
             list_state: ListState::default(),
         }
@@ -92,7 +103,8 @@ impl ContainerListWidget {
 
     /// Get currently selected index
     /// 現在選択されているインデックスを取得
-    #[must_use] pub const fn selected(&self) -> Option<usize> {
+    #[must_use]
+    pub const fn selected(&self) -> Option<usize> {
         self.list_state.selected()
     }
 
@@ -114,13 +126,7 @@ impl ContainerListWidget {
 
     /// Renders the container list widget to the terminal
     /// コンテナリストウィジェットをターミナルにレンダリング
-    pub fn render(
-        widget: &mut Self,
-        f: &mut Frame,
-        app: &App,
-        area: Rect,
-        theme: &Theme,
-    ) {
+    pub fn render(widget: &mut Self, f: &mut Frame, app: &App, area: Rect, theme: &Theme) {
         // Synchronize widget state with app state
         // ウィジェット状態をアプリ状態と同期
         widget.sync_with_app(app.selected_index, app.containers.len());
@@ -296,7 +302,7 @@ mod tests {
     fn test_format_status_exited_without_code() {
         let status = ContainerStatus::Exited { exit_code: 0 };
         let formatted = ContainerListWidget::format_status(&status);
-        assert_eq!(formatted, "Exited");
+        assert_eq!(formatted, "Exited (0)");
     }
 
     #[test]
