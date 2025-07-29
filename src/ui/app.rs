@@ -6,6 +6,7 @@ use crate::domain::entities::Container;
 use crate::domain::repositories::DockerRepository;
 use crate::error::DockaResult;
 use std::sync::Arc;
+use std::time::Instant;
 
 /// View state enum representing current application UI state
 /// `現在のアプリケーションUI状態を表すViewState列挙型`
@@ -20,6 +21,19 @@ pub enum ViewState {
     /// Error state with error message
     /// エラーメッセージ付きエラー状態
     Error(String),
+}
+
+/// Navigation direction for container selection
+/// コンテナ選択のナビゲーション方向
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NavigationDirection {
+    /// Move to next container (j, Down key)
+    /// 次のコンテナに移動 (j, Down キー)
+    Next,
+
+    /// Move to previous container (k, Up key)
+    /// 前のコンテナに移動 (k, Up キー)
+    Previous,
 }
 
 /// Main application state struct managing TUI application
@@ -77,6 +91,10 @@ pub struct App {
     /// Last error message for display purposes
     /// 表示用の最後のエラーメッセージ
     pub last_error: Option<String>,
+
+    /// Last activity timestamp for rendering optimization
+    /// レンダリング最適化用最後のアクティビティタイムスタンプ
+    pub last_activity: Instant,
 }
 
 impl App {
@@ -110,6 +128,7 @@ impl App {
             view_state: ViewState::Loading,
             docker_repository,
             last_error: None,
+            last_activity: Instant::now(), // 初期化を追加
         }
     }
 
@@ -162,6 +181,7 @@ impl App {
         // Set loading state
         self.view_state = ViewState::Loading;
         self.last_error = None;
+        self.last_activity = Instant::now(); // アクティビティ更新を追加
 
         match self.docker_repository.list_containers().await {
             Ok(containers) => {
@@ -220,6 +240,7 @@ impl App {
         }
 
         self.selected_index = (self.selected_index + 1) % self.containers.len();
+        self.last_activity = Instant::now(); // アクティビティ更新を追加
     }
 
     /// Select previous container in the list (循環ナビゲーション - 上方向)
@@ -259,8 +280,9 @@ impl App {
         if self.selected_index == 0 {
             self.selected_index = self.containers.len() - 1;
         } else {
-            self.selected_index = self.selected_index.saturating_sub(1);
+            self.selected_index -= 1;
         }
+        self.last_activity = Instant::now(); // アクティビティ更新を追加
     }
 
     /// Get currently selected container if any
@@ -315,8 +337,9 @@ impl App {
     ///
     /// This sets the `should_quit` flag for graceful shutdown.
     /// `これはグレースフルシャットダウンのためのshould_quitフラグを設定します`。
-    pub const fn quit(&mut self) {
+    pub fn quit(&mut self) {
         self.should_quit = true;
+        self.last_activity = Instant::now(); // アクティビティ更新を追加
     }
 
     /// Force application stop
@@ -324,9 +347,254 @@ impl App {
     ///
     /// This immediately stops the application by setting running to false.
     /// これはrunningをfalseに設定してアプリケーションを即座に停止します。
-    pub const fn force_quit(&mut self) {
+    pub fn force_quit(&mut self) {
         self.running = false;
         self.should_quit = true;
+        self.last_activity = Instant::now(); // アクティビティ更新を追加
+    }
+
+    /// Handle container navigation with widget state synchronization
+    /// ウィジェット状態同期付きコンテナナビゲーション処理
+    ///
+    /// This method provides bidirectional synchronization between App state
+    /// and ContainerListWidget state during navigation operations.
+    ///
+    /// このメソッドはナビゲーション操作中にApp状態と
+    /// ContainerListWidget状態の双方向同期を提供します。
+    ///
+    /// # Arguments
+    ///
+    /// * `widget` - Mutable reference to ContainerListWidget
+    /// * `direction` - Navigation direction (Next/Previous)
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use std::sync::Arc;
+    /// use docka::{
+    ///     ui::{App, ContainerListWidget, NavigationDirection},
+    ///     infrastructure::BollardDockerRepository,
+    /// };
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let docker_repo = Arc::new(BollardDockerRepository::new().await?);
+    /// let mut app = App::new(docker_repo);
+    /// let mut widget = ContainerListWidget::new();
+    ///
+    /// // Navigate to next container
+    /// app.handle_container_navigation(&mut widget, NavigationDirection::Next);
+    ///
+    /// // Navigate to previous container
+    /// app.handle_container_navigation(&mut widget, NavigationDirection::Previous);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn handle_container_navigation(
+        &mut self,
+        widget: &mut crate::ui::widgets::ContainerListWidget,
+        direction: NavigationDirection,
+    ) {
+        // Skip navigation if no containers available
+        // コンテナが利用できない場合はナビゲーションをスキップ
+        if self.containers.is_empty() {
+            return;
+        }
+
+        match direction {
+            NavigationDirection::Next => {
+                // Update widget selection first
+                // まずウィジェット選択を更新
+                widget.select_next(self.containers.len());
+
+                // Synchronize app state with widget selection
+                // アプリ状態をウィジェット選択と同期
+                if let Some(selected) = widget.selected() {
+                    self.selected_index = selected;
+                }
+            }
+            NavigationDirection::Previous => {
+                // Update widget selection first
+                // まずウィジェット選択を更新
+                widget.select_previous(self.containers.len());
+
+                // Synchronize app state with widget selection
+                // アプリ状態をウィジェット選択と同期
+                if let Some(selected) = widget.selected() {
+                    self.selected_index = selected;
+                }
+            }
+        }
+
+        // Update activity timestamp for rendering optimization
+        // レンダリング最適化のためアクティビティタイムスタンプを更新
+        self.last_activity = Instant::now();
+    }
+
+    /// Synchronize widget state with current app state
+    /// 現在のアプリ状態とウィジェット状態を同期
+    ///
+    /// This method ensures that the widget's selection state matches
+    /// the app's selected_index when needed.
+    ///
+    /// このメソッドは必要に応じてウィジェットの選択状態が
+    /// アプリのselected_indexと一致することを保証します。
+    ///
+    /// # Arguments
+    ///
+    /// * `widget` - Mutable reference to ContainerListWidget
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use std::sync::Arc;
+    /// use docka::{
+    ///     ui::{App, ContainerListWidget},
+    ///     infrastructure::BollardDockerRepository,
+    /// };
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let docker_repo = Arc::new(BollardDockerRepository::new().await?);
+    /// let mut app = App::new(docker_repo);
+    /// let mut widget = ContainerListWidget::new();
+    ///
+    /// // Manually set app selection index
+    /// // app.selected_index = 2;
+    ///
+    /// // Synchronize widget to match app state
+    /// app.sync_widget_state(&mut widget);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn sync_widget_state(&self, widget: &mut crate::ui::widgets::ContainerListWidget) {
+        if !self.containers.is_empty() && self.selected_index < self.containers.len() {
+            widget.set_selected(Some(self.selected_index));
+        } else {
+            widget.set_selected(None);
+        }
+    }
+
+    /// Check if rendering is needed based on recent activity
+    /// 最近のアクティビティに基づいてレンダリングが必要かチェック
+    ///
+    /// This method helps optimize rendering by determining if a redraw
+    /// is necessary based on recent user activity.
+    ///
+    /// このメソッドは最近のユーザーアクティビティに基づいて
+    /// 再描画が必要かを判定することでレンダリングを最適化します。
+    ///
+    /// # Returns
+    ///
+    /// * `bool` - True if redraw is needed, false otherwise
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use std::sync::Arc;
+    /// use docka::{ui::App, infrastructure::BollardDockerRepository};
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let docker_repo = Arc::new(BollardDockerRepository::new().await?);
+    /// let app = App::new(docker_repo);
+    ///
+    /// if app.needs_redraw() {
+    ///     // Perform rendering
+    ///     println!("Redraw needed");
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn needs_redraw(&self) -> bool {
+        // Consider redraw needed if activity within last 100ms
+        // 最後の100ms以内のアクティビティがあれば再描画が必要と判定
+        self.last_activity.elapsed().as_millis() < 100
+    }
+
+    /// Get the currently selected container reference
+    /// 現在選択されているコンテナの参照を取得
+    ///
+    /// This method provides safe access to the currently selected container,
+    /// returning None if no containers exist or if the selection is out of bounds.
+    ///
+    /// このメソッドは現在選択されているコンテナへの安全なアクセスを提供し、
+    /// コンテナが存在しないか選択が範囲外の場合はNoneを返します。
+    ///
+    /// # Returns
+    ///
+    /// * `Option<&Container>` - Reference to selected container, if valid
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use std::sync::Arc;
+    /// use docka::{ui::App, infrastructure::BollardDockerRepository};
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let docker_repo = Arc::new(BollardDockerRepository::new().await?);
+    /// let mut app = App::new(docker_repo);
+    ///
+    /// // Load containers first
+    /// app.refresh_containers().await?;
+    ///
+    /// if let Some(container) = app.get_selected_container() {
+    ///     println!("Selected: {}", container.name());
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn get_selected_container(&self) -> Option<&crate::domain::entities::Container> {
+        if self.selected_index < self.containers.len() {
+            Some(&self.containers[self.selected_index])
+        } else {
+            None
+        }
+    }
+
+    /// Check if the container list is empty
+    /// コンテナリストが空かどうかをチェック
+    ///
+    /// # Returns
+    ///
+    /// * `bool` - True if no containers are loaded
+    #[must_use]
+    pub fn is_container_list_empty(&self) -> bool {
+        self.containers.is_empty()
+    }
+
+    /// Validate that the current selected index is within bounds
+    /// 現在の選択インデックスが範囲内にあることを検証
+    ///
+    /// # Returns
+    ///
+    /// * `bool` - True if selected_index is valid for current container list
+    #[must_use]
+    pub fn is_selected_index_valid(&self) -> bool {
+        !self.containers.is_empty() && self.selected_index < self.containers.len()
+    }
+
+    /// Debug information for development and testing
+    /// 開発とテスト用のデバッグ情報
+    ///
+    /// This method provides detailed state information for debugging purposes.
+    /// Only available in debug builds.
+    ///
+    /// このメソッドはデバッグ目的で詳細な状態情報を提供します。
+    /// デバッグビルドでのみ利用可能です。
+    #[cfg(debug_assertions)]
+    #[must_use]
+    pub fn debug_info(&self) -> String {
+        format!(
+            "App Debug: containers={}, selected={}, view_state={:?}, needs_redraw={}",
+            self.containers.len(),
+            self.selected_index,
+            self.view_state,
+            self.needs_redraw()
+        )
     }
 }
 
@@ -361,6 +629,36 @@ mod tests {
         assert_eq!(app.selected_index, 0);
         assert_eq!(app.view_state, ViewState::Loading);
         assert!(app.last_error.is_none());
+        assert!(app.last_activity.elapsed().as_secs() < 1);
+    }
+
+    #[test]
+    fn test_needs_redraw() {
+        let mut app = create_test_app();
+
+        // 初期状態では再描画不要（100ms経過済み）
+        std::thread::sleep(std::time::Duration::from_millis(110));
+        assert!(!app.needs_redraw());
+
+        // アクティビティ更新後は再描画必要
+        app.last_activity = Instant::now();
+        assert!(app.needs_redraw());
+    }
+
+    #[test]
+    fn test_navigation_updates_activity() {
+        let mut app = create_test_app();
+        app.containers = vec![create_test_container("1", "test1")];
+
+        let initial_activity = app.last_activity;
+
+        // 小さな遅延で確実にタイムスタンプが変わることを保証
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        app.select_next();
+
+        // アクティビティタイムスタンプが更新されているべき
+        assert!(app.last_activity > initial_activity);
     }
 
     #[test]
