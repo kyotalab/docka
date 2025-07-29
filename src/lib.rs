@@ -35,7 +35,8 @@
 //! - ✅ Repository trait definitions
 //! - ✅ Docker API integration (Bollard-based)
 //! - ✅ Basic TUI application structure
-//! - 🚧 TUI layout management (Week 2, Task 1.2.3)
+//! - ✅ TUI layout management (Week 2, Task 1.2.3)
+//! - 🚧 TUI container list widget (Week 2, Task 1.2.2)
 //!
 //! ## Usage
 //!
@@ -178,8 +179,8 @@ pub use infrastructure::BollardDockerRepository;
 /// UI layer types and components.
 /// UI層の型とコンポーネント。
 pub use ui::{
-    App, AppEvent, AppStyles, BlockStyles, EventStats, LayoutAreas, SimpleLayout, StatusBar, Theme,
-    ViewState,
+    App, AppEvent, AppStyles, BlockStyles, ContainerListWidget, EventStats, LayoutAreas,
+    SimpleLayout, StatusBar, Theme, ViewState,
 };
 
 // Test utilities (only available in test builds)
