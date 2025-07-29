@@ -23,8 +23,12 @@ use docka::{
     error::{DockaError, DockaResult},
     infrastructure::BollardDockerRepository,
     ui::{
-        app::App,
-        events::{EventStats, handle_key_event, process_app_event},
+        app::{App, NavigationDirection},
+        events::{AppEvent, EventStats, handle_key_event, process_app_event},
+        layouts::SimpleLayout,
+        styles::Theme,
+        validate_key_input,
+        widgets::{ContainerListWidget, StatusBar}, // ContainerListWidget, StatusBar を追加
     },
 };
 
@@ -229,25 +233,65 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Docka
     let mut last_render = Instant::now();
     const TARGET_FPS: Duration = Duration::from_millis(16); // ~60 FPS
 
+    // === Widget統合のための初期化 ===
+    let mut container_widget = ContainerListWidget::new();
+    let theme = Theme::dark();
+
+    // 初期状態同期
+    app.sync_widget_state(&mut container_widget);
+
     // Main event loop
     // メインイベントループ
     while app.is_running() {
         // Handle events with timeout
         // タイムアウト付きイベント処理
         if event::poll(EVENT_POLL_INTERVAL).map_err(DockaError::Io)? {
-            // Handle keyboard events only, ignore other event types for Phase 1
-            // Phase 1ではキーボードイベントのみ処理、他のイベントタイプは無視
-            if let Ok(Event::Key(key_event)) = event::read() {
+            if let Event::Key(key_event) = event::read().map_err(DockaError::Io)? {
                 // Validate and process key input
                 // キー入力を検証して処理
-                if docka::ui::events::validate_key_input(key_event) {
+                if validate_key_input(key_event) {
                     let app_event = handle_key_event(key_event);
-                    let result = process_app_event(app, app_event.clone()).await;
-                    event_stats.record_event(&app_event, &result);
+
+                    // 統合されたイベント処理
+                    let event_result = match app_event {
+                        AppEvent::SelectNext => {
+                            app.handle_container_navigation(
+                                &mut container_widget,
+                                NavigationDirection::Next,
+                            );
+                            Ok(())
+                        }
+                        AppEvent::SelectPrevious => {
+                            app.handle_container_navigation(
+                                &mut container_widget,
+                                NavigationDirection::Previous,
+                            );
+                            Ok(())
+                        }
+                        AppEvent::Refresh => {
+                            match app.refresh_containers().await {
+                                Ok(()) => {
+                                    // 更新成功後にウィジェット状態を同期
+                                    app.sync_widget_state(&mut container_widget);
+                                    Ok(())
+                                }
+                                Err(e) => {
+                                    // エラー状態は自動的にrefresh_containers内で設定される
+                                    Err(e)
+                                }
+                            }
+                        }
+                        // 他のイベントは既存のprocess_app_event関数を使用
+                        _ => process_app_event(app, app_event.clone()).await,
+                    };
+
+                    // Record event statistics
+                    // イベント統計を記録
+                    event_stats.record_event(&app_event, &event_result);
 
                     // Handle processing errors
                     // 処理エラーを処理
-                    if let Err(ref error) = result {
+                    if let Err(ref error) = event_result {
                         // Log error but continue running
                         // エラーをログするが実行を継続
                         #[cfg(debug_assertions)]
@@ -259,11 +303,13 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Docka
             // 注意: その他のイベント（リサイズ、マウス等）は暗黙的に無視される
         }
 
+        // === 統合レンダリング（修正箇所） ===
         // Render UI with frame rate limiting
         // フレームレート制限付きでUIをレンダリング
         let now = Instant::now();
-        if now.duration_since(last_render) >= TARGET_FPS {
-            render_ui(terminal, app)?;
+        if now.duration_since(last_render) >= TARGET_FPS || app.needs_redraw() {
+            // 統合されたrender_ui関数を使用
+            render_ui(terminal, app, &mut container_widget, &theme)?;
             last_render = now;
         }
 
@@ -275,141 +321,118 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Docka
     Ok(event_stats)
 }
 
-/// Render the user interface
-/// ユーザーインターフェースをレンダリング
+// /// Render UI with full widget integration
+// /// 完全なウィジェット統合でUIをレンダリング
+// fn render_ui_integrated(
+//     f: &mut ratatui::Frame,
+//     app: &App,
+//     container_widget: &mut ContainerListWidget,
+//     theme: &Theme,
+// ) {
+//     // レスポンシブレイアウトを計算
+//     let layout = SimpleLayout::calculate_responsive(f.area());
+
+//     // メインエリア: ContainerListWidget
+//     ContainerListWidget::render(container_widget, f, app, layout.main, theme);
+
+//     // ステータスバーエリア: StatusBar
+//     StatusBar::render(f, app, layout.status);
+
+//     // ヘルプエリア（利用可能な場合）
+//     if layout.help.height > 0 && layout.help.width > 0 {
+//         render_help_area(f, layout.help, theme);
+//     }
+// }
+
+/// Render help area with key bindings
+/// キーバインド付きヘルプエリアレンダリング
+fn render_help_area(f: &mut ratatui::Frame, area: ratatui::layout::Rect, theme: &Theme) {
+    use ratatui::{
+        text::{Line, Span, Text},
+        widgets::{Block, Borders, Paragraph},
+    };
+
+    // ヘルプテキストの作成
+    let help_spans = vec![
+        Span::styled("j/k", theme.styles.success_style()),
+        Span::styled(": navigate | ", theme.styles.muted_style()),
+        Span::styled("r", theme.styles.success_style()),
+        Span::styled(": refresh | ", theme.styles.muted_style()),
+        Span::styled("Enter", theme.styles.success_style()),
+        Span::styled(": select | ", theme.styles.muted_style()),
+        Span::styled("q", theme.styles.error_style()),
+        Span::styled(": quit", theme.styles.muted_style()),
+    ];
+
+    let help_text = Text::from(Line::from(help_spans));
+
+    let help_paragraph = Paragraph::new(help_text)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Help")
+                .border_style(theme.blocks.normal_border_style)
+                .title_style(theme.styles.normal_style()),
+        )
+        .style(theme.styles.normal_style());
+
+    f.render_widget(help_paragraph, area);
+}
+
+/// Render the user interface with full widget integration
+/// 完全なウィジェット統合でユーザーインターフェースをレンダリング
 ///
-/// This function handles the UI rendering logic. In Phase 1, it provides
-/// a basic implementation that will be expanded with proper widgets in later tasks.
+/// This function handles the UI rendering logic using the full widget system
+/// implemented in Task 1.2.2 and 1.2.3. It provides advanced layout management,
+/// status bar integration, and responsive design.
 ///
-/// この関数はUIレンダリングロジックを処理します。Phase 1では
-/// 後のタスクで適切なウィジェットに拡張される基本実装を提供します。
+/// この関数はTask 1.2.2と1.2.3で実装された完全なウィジェットシステムを使用して
+/// UIレンダリングロジックを処理します。高度なレイアウト管理、ステータスバー統合、
+/// レスポンシブデザインを提供します。
 ///
 /// # Arguments
 /// * `terminal` - Terminal instance for rendering
 /// * `app` - Application state to render
+/// * `container_widget` - Container list widget state
+/// * `theme` - Theme configuration for styling
 ///
 /// # Returns
 /// * `Ok(())` - Rendering successful
 /// * `Err(DockaError)` - Rendering failed
-fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app: &App) -> DockaResult<()> {
+///
+/// # Phase Migration
+/// This function replaces the basic `render_ui` from Phase 1 with the full
+/// widget-based implementation planned for Task 1.2.2 and 1.2.3.
+///
+/// この関数はPhase 1の基本的な`render_ui`を、Task 1.2.2と1.2.3で計画された
+/// 完全なウィジェットベース実装に置き換えます。
+fn render_ui<B: Backend>(
+    terminal: &mut Terminal<B>,
+    app: &App,
+    container_widget: &mut ContainerListWidget,
+    theme: &Theme,
+) -> DockaResult<()> {
     terminal
         .draw(|f| {
-            // Phase 1: Basic text-based rendering
-            // Phase 1: 基本的なテキストベースレンダリング
-            // This will be replaced with proper widgets in Task 1.2.2 and 1.2.3
-            // これはTask 1.2.2と1.2.3で適切なウィジェットに置き換えられる
+            // レスポンシブレイアウトを計算
+            let layout = SimpleLayout::calculate_responsive(f.area());
 
-            use ratatui::{
-                layout::{Constraint, Direction, Layout},
-                text::{Line, Span},
-                widgets::{Block, Borders, List, ListItem, Paragraph},
-                style::{Color, Style},
-            };
+            // メインエリア: ContainerListWidget
+            ContainerListWidget::render(container_widget, f, app, layout.main, theme);
 
-            let size = f.area();
+            // ステータスバーエリア: StatusBar
+            StatusBar::render(f, app, layout.status);
 
-            // Simple layout: main area + status bar
-            // シンプルなレイアウト: メインエリア + ステータスバー
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Min(3), Constraint::Length(3)].as_ref())
-                .split(size);
-
-            // Render container list or status message
-            // コンテナリストまたはステータスメッセージをレンダリング
-            match &app.view_state {
-                docka::ui::app::ViewState::Loading => {
-                    let loading = Paragraph::new("Loading containers...")
-                        .block(Block::default()
-                            .title("Docker Containers")
-                            .borders(Borders::ALL))
-                        .style(Style::default().fg(Color::Yellow));
-                    f.render_widget(loading, chunks[0]);
-                }
-                docka::ui::app::ViewState::Error(error) => {
-                    let error_text = Paragraph::new(format!("Error: {}", error))
-                        .block(Block::default()
-                            .title("Error")
-                            .borders(Borders::ALL))
-                        .style(Style::default().fg(Color::Red));
-                    f.render_widget(error_text, chunks[0]);
-                }
-                docka::ui::app::ViewState::ContainerList => {
-                    if app.containers.is_empty() {
-                        let empty = Paragraph::new("No containers found. Press 'r' to refresh.")
-                            .block(Block::default()
-                                .title("Docker Containers")
-                                .borders(Borders::ALL))
-                            .style(Style::default().fg(Color::Gray));
-                        f.render_widget(empty, chunks[0]);
-                    } else {
-                        // Render container list
-                        // コンテナリストをレンダリング
-                        let items: Vec<ListItem> = app.containers
-                            .iter()
-                            .enumerate()
-                            .map(|(i, container)| {
-                                let style = if i == app.selected_index {
-                                    Style::default().bg(Color::Blue).fg(Color::White)
-                                } else {
-                                    Style::default()
-                                };
-
-                                let status_color = match container.status {
-                                    docka::domain::ContainerStatus::Running => Color::Green,
-                                    docka::domain::ContainerStatus::Stopped => Color::Red,
-                                    docka::domain::ContainerStatus::Exited { .. } => Color::Yellow,
-                                    docka::domain::ContainerStatus::Paused => Color::Cyan,
-                                    _ => Color::Gray,
-                                };
-
-                                let content = Line::from(vec![
-                                    Span::styled(
-                                        format!("{:<20}", container.display_name()),
-                                        style
-                                    ),
-                                    Span::styled(
-                                        format!(" [{:?}]", container.status),
-                                        Style::default().fg(status_color)
-                                    ),
-                                    Span::styled(
-                                        format!(" {}", container.image),
-                                        Style::default().fg(Color::Cyan)
-                                    ),
-                                ]);
-
-                                ListItem::new(content).style(style)
-                            })
-                            .collect();
-
-                        let list = List::new(items)
-                            .block(Block::default()
-                                .title(format!("Docker Containers ({})", app.containers.len()))
-                                .borders(Borders::ALL));
-
-                        f.render_widget(list, chunks[0]);
-                    }
-                }
+            // ヘルプエリア（利用可能な場合）
+            if layout.help.height > 0 && layout.help.width > 0 {
+                render_help_area(f, layout.help, theme);
             }
-
-            // Render status bar
-            // ステータスバーをレンダリング
-            let status_text = format!(
-                " docka v{} | Selected: {}/{} | Press 'q' to quit, 'r' to refresh, 'j/k' to navigate",
-                VERSION,
-                if app.containers.is_empty() { 0 } else { app.selected_index + 1 },
-                app.containers.len()
-            );
-
-            let status_bar = Paragraph::new(status_text)
-                .block(Block::default().borders(Borders::ALL))
-                .style(Style::default().fg(Color::White).bg(Color::DarkGray));
-
-            f.render_widget(status_bar, chunks[1]);
         })
-        .map_err(|e| DockaError::UiRendering { message: format!("UI rendering failed: {}", e) })?;
-
-    Ok(())
+        // === 修正: CompletedFrame を () に変換 ===
+        .map(|_| ()) // CompletedFrame<'_> を () に変換
+        .map_err(|e| DockaError::UiRendering {
+            message: format!("Failed to render UI: {}", e),
+        })
 }
 
 /// Initialize tracing for development debugging

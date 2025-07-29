@@ -95,6 +95,57 @@ pub struct App {
     /// Last activity timestamp for rendering optimization
     /// レンダリング最適化用最後のアクティビティタイムスタンプ
     pub last_activity: Instant,
+
+    /// Help area visibility toggle state
+    /// ヘルプエリア表示切り替え状態
+    ///
+    /// Controls whether the help area is displayed in the TUI interface.
+    /// When enabled, shows keyboard shortcuts and command help at the bottom
+    /// of the screen. The help area is responsive and automatically hidden
+    /// on smaller terminals to preserve main content visibility.
+    ///
+    /// TUIインターフェースでヘルプエリアを表示するかを制御します。
+    /// 有効時は、画面下部にキーボードショートカットとコマンドヘルプを表示します。
+    /// ヘルプエリアはレスポンシブで、小さなターミナルでは自動的に非表示になり、
+    /// メインコンテンツの可視性を保持します。
+    ///
+    /// # Default Value
+    /// `false` - Help is initially hidden to maximize container list space
+    /// `false` - コンテナリストスペース最大化のため初期状態では非表示
+    ///
+    /// # Usage
+    /// - Toggle with '?' key or explicit toggle_help() method call
+    /// - Automatically respected by layout system (SimpleLayout)
+    /// - Only shown when terminal has sufficient height (≥10 rows)
+    ///
+    /// - '?'キーまたは明示的なtoggle_help()メソッド呼び出しで切り替え
+    /// - レイアウトシステム（SimpleLayout）により自動的に考慮される
+    /// - ターミナルに十分な高さ（≥10行）がある場合のみ表示
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// # use std::sync::Arc;
+    /// # use docka::{ui::app::App, infrastructure::BollardDockerRepository};
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let docker_repo = Arc::new(BollardDockerRepository::new().await?);
+    /// let mut app = App::new(docker_repo);
+    ///
+    /// // Initially hidden
+    /// assert!(!app.show_help());
+    ///
+    /// // Toggle to show help
+    /// app.toggle_help();
+    /// assert!(app.show_help());
+    ///
+    /// // Toggle to hide help
+    /// app.toggle_help();
+    /// assert!(!app.show_help());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub show_help: bool,
 }
 
 impl App {
@@ -129,6 +180,7 @@ impl App {
             docker_repository,
             last_error: None,
             last_activity: Instant::now(), // 初期化を追加
+            show_help: false,              // <- 新規追加
         }
     }
 
@@ -589,12 +641,93 @@ impl App {
     #[must_use]
     pub fn debug_info(&self) -> String {
         format!(
-            "App Debug: containers={}, selected={}, view_state={:?}, needs_redraw={}",
+            "App Debug: containers={}, selected={}, view_state={:?}, needs_redraw={}, show_help={}",
             self.containers.len(),
             self.selected_index,
             self.view_state,
-            self.needs_redraw()
+            self.needs_redraw(),
+            self.show_help
         )
+    }
+
+    /// Toggle help area visibility
+    /// ヘルプエリア表示の切り替え
+    ///
+    /// Toggles the visibility of the help area at the bottom of the TUI interface.
+    /// The help area displays keyboard shortcuts and command information.
+    /// Layout system automatically respects this setting and terminal size constraints.
+    ///
+    /// TUIインターフェース下部のヘルプエリアの表示を切り替えます。
+    /// ヘルプエリアはキーボードショートカットとコマンド情報を表示します。
+    /// レイアウトシステムはこの設定とターミナルサイズ制約を自動的に考慮します。
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// # use std::sync::Arc;
+    /// # use docka::{ui::app::App, infrastructure::BollardDockerRepository};
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let docker_repo = Arc::new(BollardDockerRepository::new().await?);
+    /// let mut app = App::new(docker_repo);
+    ///
+    /// assert!(!app.show_help());
+    /// app.toggle_help();
+    /// assert!(app.show_help());
+    /// app.toggle_help();
+    /// assert!(!app.show_help());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn toggle_help(&mut self) {
+        self.show_help = !self.show_help;
+        self.last_activity = std::time::Instant::now();
+    }
+
+    /// Get current help area visibility state
+    /// 現在のヘルプエリア表示状態を取得
+    ///
+    /// Returns whether the help area is currently set to be visible.
+    /// Note that the actual visibility also depends on terminal size constraints
+    /// handled by the layout system.
+    ///
+    /// ヘルプエリアが現在表示に設定されているかを返します。
+    /// 実際の表示はレイアウトシステムで処理されるターミナルサイズ制約にも依存することに注意してください。
+    ///
+    /// # Returns
+    /// * `true` - Help area is enabled for display
+    /// * `false` - Help area is hidden
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// # use std::sync::Arc;
+    /// # use docka::{ui::app::App, infrastructure::BollardDockerRepository};
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let docker_repo = Arc::new(BollardDockerRepository::new().await?);
+    /// let app = App::new(docker_repo);
+    /// assert!(!app.show_help());
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[must_use]
+    pub const fn show_help(&self) -> bool {
+        self.show_help
+    }
+
+    /// エラー状態を設定
+    pub fn set_error_state(&mut self, error_message: String) {
+        use crate::ui::app::ViewState;
+        self.view_state = ViewState::Error(error_message);
+        self.last_activity = std::time::Instant::now();
+    }
+
+    /// 成功状態を設定
+    pub fn set_success_state(&mut self) {
+        use crate::ui::app::ViewState;
+        self.view_state = ViewState::ContainerList;
+        self.last_activity = std::time::Instant::now();
     }
 }
 
