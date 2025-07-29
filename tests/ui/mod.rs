@@ -28,3 +28,7 @@ pub mod widgets;
 // /// Theme and styling integration tests
 // /// テーマとスタイリング統合テスト
 // pub mod styles;
+
+/// Integration tests for UI components
+/// UIコンポーネント統合テスト
+pub mod integration_tests;
